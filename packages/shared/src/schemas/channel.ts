@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const channelTypeSchema = z.enum(["slack", "discord"]);
+export const channelTypeSchema = z.enum(["slack", "discord", "whatsapp"]);
 
 export const channelStatusSchema = z.enum([
   "pending",
@@ -21,6 +21,11 @@ export const connectDiscordSchema = z.object({
   appId: z.string().min(1),
   guildId: z.string().optional(),
   guildName: z.string().optional(),
+});
+
+export const connectWhatsAppSchema = z.object({
+  phoneNumberId: z.string().min(1),
+  displayPhoneNumber: z.string().optional(),
 });
 
 export const channelResponseSchema = z.object({
@@ -47,5 +52,6 @@ export type ChannelType = z.infer<typeof channelTypeSchema>;
 export type ChannelStatus = z.infer<typeof channelStatusSchema>;
 export type ConnectSlackInput = z.infer<typeof connectSlackSchema>;
 export type ConnectDiscordInput = z.infer<typeof connectDiscordSchema>;
+export type ConnectWhatsAppInput = z.infer<typeof connectWhatsAppSchema>;
 export type ChannelResponse = z.infer<typeof channelResponseSchema>;
 export type SlackOAuthUrlResponse = z.infer<typeof slackOAuthUrlResponseSchema>;

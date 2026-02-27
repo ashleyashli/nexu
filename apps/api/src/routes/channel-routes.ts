@@ -5,6 +5,7 @@ import {
   channelResponseSchema,
   connectDiscordSchema,
   connectSlackSchema,
+  connectWhatsAppSchema,
   slackOAuthUrlResponseSchema,
 } from "@nexu/shared";
 import { createId } from "@paralleldrive/cuid2";
@@ -65,7 +66,7 @@ function formatChannel(
   return {
     id: ch.id,
     botId: ch.botId,
-    channelType: ch.channelType as "slack" | "discord",
+    channelType: ch.channelType as "slack" | "discord" | "whatsapp",
     accountId: ch.accountId,
     status: (ch.status ?? "pending") as
       | "pending"
@@ -210,6 +211,27 @@ const connectDiscordRoute = createRoute({
     409: {
       content: { "application/json": { schema: errorResponseSchema } },
       description: "Discord already connected",
+    },
+  },
+});
+
+const connectWhatsAppRoute = createRoute({
+  method: "post",
+  path: "/v1/channels/whatsapp/connect",
+  tags: ["Channels"],
+  request: {
+    body: {
+      content: { "application/json": { schema: connectWhatsAppSchema } },
+    },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: channelResponseSchema } },
+      description: "WhatsApp channel connected",
+    },
+    409: {
+      content: { "application/json": { schema: errorResponseSchema } },
+      description: "WhatsApp already connected",
     },
   },
 });
@@ -427,6 +449,93 @@ export function registerChannelRoutes(app: OpenAPIHono<AppBindings>) {
       encryptedValue: encrypt(input.botToken),
       createdAt: now,
     });
+
+    await publishSnapshotSafely(bot.poolId, bot.id);
+
+    const [channel] = await db
+      .select()
+      .from(botChannels)
+      .where(eq(botChannels.id, channelId));
+
+    if (!channel) {
+      throw new Error("Failed to create channel");
+    }
+
+    return c.json(formatChannel(channel), 200);
+  });
+
+  // -- WhatsApp connect --
+  app.openapi(connectWhatsAppRoute, async (c) => {
+    const userId = c.get("userId");
+    const input = c.req.valid("json");
+
+    const bot = await findOrCreateDefaultBot(userId);
+    const botId = bot.id;
+
+    const accountId = `whatsapp-${input.phoneNumberId}`;
+
+    const [existing] = await db
+      .select()
+      .from(botChannels)
+      .where(
+        and(
+          eq(botChannels.botId, botId),
+          eq(botChannels.channelType, "whatsapp"),
+          eq(botChannels.accountId, accountId),
+        ),
+      );
+
+    if (existing) {
+      return c.json({ message: "WhatsApp channel already connected" }, 409);
+    }
+
+    const [globalExisting] = await db
+      .select()
+      .from(webhookRoutes)
+      .where(
+        and(
+          eq(webhookRoutes.channelType, "whatsapp"),
+          eq(webhookRoutes.externalId, input.phoneNumberId),
+        ),
+      );
+
+    if (globalExisting) {
+      return c.json(
+        { message: "This WhatsApp number is already connected to another bot" },
+        409,
+      );
+    }
+
+    const channelId = createId();
+    const now = new Date().toISOString();
+
+    await db.insert(botChannels).values({
+      id: channelId,
+      botId,
+      channelType: "whatsapp",
+      accountId,
+      status: "connected",
+      channelConfig: JSON.stringify({
+        teamName: input.displayPhoneNumber ?? input.phoneNumberId,
+        phoneNumberId: input.phoneNumberId,
+      }),
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    if (bot.poolId) {
+      await db.insert(webhookRoutes).values({
+        id: createId(),
+        channelType: "whatsapp",
+        externalId: input.phoneNumberId,
+        poolId: bot.poolId,
+        botChannelId: channelId,
+        botId,
+        accountId,
+        updatedAt: now,
+        createdAt: now,
+      });
+    }
 
     await publishSnapshotSafely(bot.poolId, bot.id);
 

@@ -87,9 +87,25 @@ const discordChannelSchema = z.object({
   accounts: z.record(z.string(), discordAccountSchema),
 });
 
+const whatsappAccountSchema = z.object({
+  enabled: z.boolean().default(true),
+  phoneNumberId: z.string(),
+  accessToken: z.string(),
+  displayPhoneNumber: z.string().optional(),
+  groupPolicy: z.enum(["open", "allowlist", "disabled"]).default("open"),
+});
+
+const whatsappChannelSchema = z.object({
+  enabled: z.boolean().optional(),
+  groupPolicy: z.enum(["open", "allowlist", "disabled"]).optional(),
+  dmPolicy: z.enum(["pairing", "allowlist", "open"]).optional(),
+  accounts: z.record(z.string(), whatsappAccountSchema),
+});
+
 const channelsConfigSchema = z.object({
   slack: slackChannelSchema.optional(),
   discord: discordChannelSchema.optional(),
+  whatsapp: whatsappChannelSchema.optional(),
 });
 
 const bindingMatchSchema = z.object({
@@ -163,4 +179,5 @@ export type OpenClawConfig = z.infer<typeof openclawConfigSchema>;
 export type AgentConfig = z.infer<typeof agentSchema>;
 export type SlackAccountConfig = z.infer<typeof slackAccountSchema>;
 export type DiscordAccountConfig = z.infer<typeof discordAccountSchema>;
+export type WhatsAppAccountConfig = z.infer<typeof whatsappAccountSchema>;
 export type BindingConfig = z.infer<typeof bindingSchema>;

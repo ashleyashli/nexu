@@ -1474,7 +1474,8 @@
                       "type": "string",
                       "enum": [
                         "slack",
-                        "discord"
+                        "discord",
+                        "whatsapp"
                       ]
                     },
                     "accountId": {
@@ -1591,7 +1592,8 @@
                       "type": "string",
                       "enum": [
                         "slack",
-                        "discord"
+                        "discord",
+                        "whatsapp"
                       ]
                     },
                     "accountId": {
@@ -1656,6 +1658,116 @@
         }
       }
     },
+    "/v1/channels/whatsapp/connect": {
+      "post": {
+        "tags": [
+          "Channels"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phoneNumberId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "displayPhoneNumber": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "phoneNumberId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "WhatsApp channel connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "botId": {
+                      "type": "string"
+                    },
+                    "channelType": {
+                      "type": "string",
+                      "enum": [
+                        "slack",
+                        "discord",
+                        "whatsapp"
+                      ]
+                    },
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "connected",
+                        "disconnected",
+                        "error"
+                      ]
+                    },
+                    "teamName": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "appId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "botId",
+                    "channelType",
+                    "accountId",
+                    "status",
+                    "teamName",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "WhatsApp already connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/channels": {
       "get": {
         "tags": [
@@ -1684,7 +1796,8 @@
                             "type": "string",
                             "enum": [
                               "slack",
-                              "discord"
+                              "discord",
+                              "whatsapp"
                             ]
                           },
                           "accountId": {
@@ -1825,7 +1938,8 @@
                       "type": "string",
                       "enum": [
                         "slack",
-                        "discord"
+                        "discord",
+                        "whatsapp"
                       ]
                     },
                     "accountId": {
@@ -2383,6 +2497,14 @@
                                 "disabled"
                               ]
                             },
+                            "dmPolicy": {
+                              "type": "string",
+                              "enum": [
+                                "pairing",
+                                "allowlist",
+                                "open"
+                              ]
+                            },
                             "accounts": {
                               "type": "object",
                               "additionalProperties": {
@@ -2407,6 +2529,67 @@
                                 },
                                 "required": [
                                   "token"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "accounts"
+                          ]
+                        },
+                        "whatsapp": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "groupPolicy": {
+                              "type": "string",
+                              "enum": [
+                                "open",
+                                "allowlist",
+                                "disabled"
+                              ]
+                            },
+                            "dmPolicy": {
+                              "type": "string",
+                              "enum": [
+                                "pairing",
+                                "allowlist",
+                                "open"
+                              ]
+                            },
+                            "accounts": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean",
+                                    "default": true
+                                  },
+                                  "phoneNumberId": {
+                                    "type": "string"
+                                  },
+                                  "accessToken": {
+                                    "type": "string"
+                                  },
+                                  "displayPhoneNumber": {
+                                    "type": "string"
+                                  },
+                                  "groupPolicy": {
+                                    "type": "string",
+                                    "enum": [
+                                      "open",
+                                      "allowlist",
+                                      "disabled"
+                                    ],
+                                    "default": "open"
+                                  }
+                                },
+                                "required": [
+                                  "phoneNumberId",
+                                  "accessToken"
                                 ]
                               }
                             }
@@ -3063,6 +3246,14 @@
                                     "disabled"
                                   ]
                                 },
+                                "dmPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pairing",
+                                    "allowlist",
+                                    "open"
+                                  ]
+                                },
                                 "accounts": {
                                   "type": "object",
                                   "additionalProperties": {
@@ -3087,6 +3278,67 @@
                                     },
                                     "required": [
                                       "token"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "accounts"
+                              ]
+                            },
+                            "whatsapp": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "groupPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "open",
+                                    "allowlist",
+                                    "disabled"
+                                  ]
+                                },
+                                "dmPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pairing",
+                                    "allowlist",
+                                    "open"
+                                  ]
+                                },
+                                "accounts": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "enabled": {
+                                        "type": "boolean",
+                                        "default": true
+                                      },
+                                      "phoneNumberId": {
+                                        "type": "string"
+                                      },
+                                      "accessToken": {
+                                        "type": "string"
+                                      },
+                                      "displayPhoneNumber": {
+                                        "type": "string"
+                                      },
+                                      "groupPolicy": {
+                                        "type": "string",
+                                        "enum": [
+                                          "open",
+                                          "allowlist",
+                                          "disabled"
+                                        ],
+                                        "default": "open"
+                                      }
+                                    },
+                                    "required": [
+                                      "phoneNumberId",
+                                      "accessToken"
                                     ]
                                   }
                                 }
@@ -3615,6 +3867,14 @@
                                     "disabled"
                                   ]
                                 },
+                                "dmPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pairing",
+                                    "allowlist",
+                                    "open"
+                                  ]
+                                },
                                 "accounts": {
                                   "type": "object",
                                   "additionalProperties": {
@@ -3639,6 +3899,67 @@
                                     },
                                     "required": [
                                       "token"
+                                    ]
+                                  }
+                                }
+                              },
+                              "required": [
+                                "accounts"
+                              ]
+                            },
+                            "whatsapp": {
+                              "type": "object",
+                              "properties": {
+                                "enabled": {
+                                  "type": "boolean"
+                                },
+                                "groupPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "open",
+                                    "allowlist",
+                                    "disabled"
+                                  ]
+                                },
+                                "dmPolicy": {
+                                  "type": "string",
+                                  "enum": [
+                                    "pairing",
+                                    "allowlist",
+                                    "open"
+                                  ]
+                                },
+                                "accounts": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "enabled": {
+                                        "type": "boolean",
+                                        "default": true
+                                      },
+                                      "phoneNumberId": {
+                                        "type": "string"
+                                      },
+                                      "accessToken": {
+                                        "type": "string"
+                                      },
+                                      "displayPhoneNumber": {
+                                        "type": "string"
+                                      },
+                                      "groupPolicy": {
+                                        "type": "string",
+                                        "enum": [
+                                          "open",
+                                          "allowlist",
+                                          "disabled"
+                                        ],
+                                        "default": "open"
+                                      }
+                                    },
+                                    "required": [
+                                      "phoneNumberId",
+                                      "accessToken"
                                     ]
                                   }
                                 }

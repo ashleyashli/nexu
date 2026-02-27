@@ -22,6 +22,7 @@ import {
   getV1ChannelsSlackOauthUrl,
   postV1ChannelsDiscordConnect,
   postV1ChannelsSlackConnect,
+  postV1ChannelsWhatsappConnect,
 } from "../../lib/api/sdk.gen";
 
 export function ChannelsPage() {
@@ -38,18 +39,20 @@ export function ChannelsPage() {
   const channels = channelsData?.channels ?? [];
   const slackChannel = channels.find((ch) => ch.channelType === "slack");
   const discordChannel = channels.find((ch) => ch.channelType === "discord");
+  const whatsappChannel = channels.find((ch) => ch.channelType === "whatsapp");
 
   return (
     <div className="max-w-2xl">
       <h1 className="mb-1 text-2xl font-bold">Channel Configuration</h1>
       <p className="mb-6 text-muted-foreground">
-        Connect your bot to Slack or Discord.
+        Connect your bot to Slack, Discord, or WhatsApp.
       </p>
 
       <Tabs defaultValue="slack">
         <TabsList>
           <TabsTrigger value="slack">Slack</TabsTrigger>
           <TabsTrigger value="discord">Discord</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
 
         <TabsContent value="slack" className="mt-4">
@@ -71,6 +74,17 @@ export function ChannelsPage() {
             />
           ) : (
             <DiscordSetupView queryClient={queryClient} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="mt-4">
+          {whatsappChannel ? (
+            <WhatsAppConnectedView
+              channel={whatsappChannel}
+              queryClient={queryClient}
+            />
+          ) : (
+            <WhatsAppSetupView queryClient={queryClient} />
           )}
         </TabsContent>
       </Tabs>
@@ -511,6 +525,145 @@ function DiscordSetupView({
             <Button onClick={() => setStep((s) => s + 1)}>Next</Button>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WhatsAppConnectedView({
+  channel,
+  queryClient,
+}: {
+  channel: {
+    id: string;
+    accountId: string;
+    teamName: string | null;
+    status: string;
+  };
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await deleteV1ChannelsByChannelId({
+        path: { channelId: channel.id },
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
+      toast.success("WhatsApp disconnected");
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Hash className="h-5 w-5" />
+            <div>
+              <CardTitle>{channel.teamName ?? channel.accountId}</CardTitle>
+              <CardDescription>{channel.accountId}</CardDescription>
+            </div>
+          </div>
+          <Badge variant="success">
+            <CheckCircle className="mr-1 h-3 w-3" />
+            Connected
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Separator className="mb-4" />
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => disconnectMutation.mutate()}
+          disabled={disconnectMutation.isPending}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Disconnect
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WhatsAppSetupView({
+  queryClient,
+}: {
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [displayPhoneNumber, setDisplayPhoneNumber] = useState("");
+
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await postV1ChannelsWhatsappConnect({
+        body: {
+          phoneNumberId,
+          displayPhoneNumber: displayPhoneNumber || undefined,
+        },
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
+      toast.success("WhatsApp connected successfully!");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Connect WhatsApp</CardTitle>
+        <CardDescription>
+          Bind a WhatsApp Cloud API phone number to your bot.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            connectMutation.mutate();
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-phone-number-id">Phone Number ID</Label>
+            <Input
+              id="whatsapp-phone-number-id"
+              placeholder="123456789012345"
+              value={phoneNumberId}
+              onChange={(e) => setPhoneNumberId(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp-display-phone-number">
+              Display Phone Number (Optional)
+            </Label>
+            <Input
+              id="whatsapp-display-phone-number"
+              placeholder="+1 555 123 4567"
+              value={displayPhoneNumber}
+              onChange={(e) => setDisplayPhoneNumber(e.target.value)}
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={connectMutation.isPending}
+          >
+            {connectMutation.isPending && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Connect
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

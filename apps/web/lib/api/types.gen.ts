@@ -566,7 +566,7 @@ export type PostV1ChannelsSlackConnectResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -608,7 +608,7 @@ export type PostV1ChannelsDiscordConnectResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -619,6 +619,46 @@ export type PostV1ChannelsDiscordConnectResponses = {
 };
 
 export type PostV1ChannelsDiscordConnectResponse = PostV1ChannelsDiscordConnectResponses[keyof PostV1ChannelsDiscordConnectResponses];
+
+export type PostV1ChannelsWhatsappConnectData = {
+    body?: {
+        phoneNumberId: string;
+        displayPhoneNumber?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/channels/whatsapp/connect';
+};
+
+export type PostV1ChannelsWhatsappConnectErrors = {
+    /**
+     * WhatsApp already connected
+     */
+    409: {
+        message: string;
+    };
+};
+
+export type PostV1ChannelsWhatsappConnectError = PostV1ChannelsWhatsappConnectErrors[keyof PostV1ChannelsWhatsappConnectErrors];
+
+export type PostV1ChannelsWhatsappConnectResponses = {
+    /**
+     * WhatsApp channel connected
+     */
+    200: {
+        id: string;
+        botId: string;
+        channelType: 'slack' | 'discord' | 'whatsapp';
+        accountId: string;
+        status: 'pending' | 'connected' | 'disconnected' | 'error';
+        teamName: string;
+        appId?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostV1ChannelsWhatsappConnectResponse = PostV1ChannelsWhatsappConnectResponses[keyof PostV1ChannelsWhatsappConnectResponses];
 
 export type GetV1ChannelsData = {
     body?: never;
@@ -635,7 +675,7 @@ export type GetV1ChannelsResponses = {
         channels: Array<{
             id: string;
             botId: string;
-            channelType: 'slack' | 'discord';
+            channelType: 'slack' | 'discord' | 'whatsapp';
             accountId: string;
             status: 'pending' | 'connected' | 'disconnected' | 'error';
             teamName: string;
@@ -706,7 +746,7 @@ export type GetV1ChannelsByChannelIdStatusResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -873,10 +913,25 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
             discord?: {
                 enabled?: boolean;
                 groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                dmPolicy?: 'pairing' | 'allowlist' | 'open';
                 accounts: {
                     [key: string]: {
                         enabled?: boolean;
                         token: string;
+                        groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    };
+                };
+            };
+            whatsapp?: {
+                enabled?: boolean;
+                groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                dmPolicy?: 'pairing' | 'allowlist' | 'open';
+                accounts: {
+                    [key: string]: {
+                        enabled?: boolean;
+                        phoneNumberId: string;
+                        accessToken: string;
+                        displayPhoneNumber?: string;
                         groupPolicy?: 'open' | 'allowlist' | 'disabled';
                     };
                 };
@@ -1063,10 +1118,25 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                 discord?: {
                     enabled?: boolean;
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     accounts: {
                         [key: string]: {
                             enabled?: boolean;
                             token: string;
+                            groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                        };
+                    };
+                };
+                whatsapp?: {
+                    enabled?: boolean;
+                    groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
+                    accounts: {
+                        [key: string]: {
+                            enabled?: boolean;
+                            phoneNumberId: string;
+                            accessToken: string;
+                            displayPhoneNumber?: string;
                             groupPolicy?: 'open' | 'allowlist' | 'disabled';
                         };
                     };
@@ -1207,10 +1277,25 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                 discord?: {
                     enabled?: boolean;
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     accounts: {
                         [key: string]: {
                             enabled?: boolean;
                             token: string;
+                            groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                        };
+                    };
+                };
+                whatsapp?: {
+                    enabled?: boolean;
+                    groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
+                    accounts: {
+                        [key: string]: {
+                            enabled?: boolean;
+                            phoneNumberId: string;
+                            accessToken: string;
+                            displayPhoneNumber?: string;
                             groupPolicy?: 'open' | 'allowlist' | 'disabled';
                         };
                     };
