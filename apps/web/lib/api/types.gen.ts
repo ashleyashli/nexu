@@ -566,7 +566,7 @@ export type PostV1ChannelsSlackConnectResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -608,7 +608,7 @@ export type PostV1ChannelsDiscordConnectResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -619,6 +619,144 @@ export type PostV1ChannelsDiscordConnectResponses = {
 };
 
 export type PostV1ChannelsDiscordConnectResponse = PostV1ChannelsDiscordConnectResponses[keyof PostV1ChannelsDiscordConnectResponses];
+
+export type PostV1ChannelsWhatsappConnectData = {
+    body?: {
+        phoneNumberId?: string;
+        phoneNumber?: string;
+        displayPhoneNumber?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/channels/whatsapp/connect';
+};
+
+export type PostV1ChannelsWhatsappConnectErrors = {
+    /**
+     * Invalid input
+     */
+    400: {
+        message: string;
+    };
+    /**
+     * WhatsApp already connected
+     */
+    409: {
+        message: string;
+    };
+    /**
+     * Failed to resolve phone number
+     */
+    500: {
+        message: string;
+    };
+};
+
+export type PostV1ChannelsWhatsappConnectError = PostV1ChannelsWhatsappConnectErrors[keyof PostV1ChannelsWhatsappConnectErrors];
+
+export type PostV1ChannelsWhatsappConnectResponses = {
+    /**
+     * WhatsApp channel connected
+     */
+    200: {
+        id: string;
+        botId: string;
+        channelType: 'slack' | 'discord' | 'whatsapp';
+        accountId: string;
+        status: 'pending' | 'connected' | 'disconnected' | 'error';
+        teamName: string;
+        appId?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostV1ChannelsWhatsappConnectResponse = PostV1ChannelsWhatsappConnectResponses[keyof PostV1ChannelsWhatsappConnectResponses];
+
+export type GetV1ChannelsWhatsappLinkStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/channels/whatsapp/link-status';
+};
+
+export type GetV1ChannelsWhatsappLinkStatusResponses = {
+    /**
+     * WhatsApp link status
+     */
+    200: {
+        linked: boolean;
+        waId: string;
+        officialPhoneNumber: string;
+        officialWaLink: string;
+        hasBotConfigured: boolean;
+    };
+};
+
+export type GetV1ChannelsWhatsappLinkStatusResponse = GetV1ChannelsWhatsappLinkStatusResponses[keyof GetV1ChannelsWhatsappLinkStatusResponses];
+
+export type PostV1ChannelsWhatsappClaimLinkData = {
+    body?: {
+        token: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/channels/whatsapp/claim-link';
+};
+
+export type PostV1ChannelsWhatsappClaimLinkErrors = {
+    /**
+     * Invalid or expired link token
+     */
+    400: {
+        message: string;
+    };
+    /**
+     * WhatsApp ID already linked
+     */
+    409: {
+        message: string;
+    };
+};
+
+export type PostV1ChannelsWhatsappClaimLinkError = PostV1ChannelsWhatsappClaimLinkErrors[keyof PostV1ChannelsWhatsappClaimLinkErrors];
+
+export type PostV1ChannelsWhatsappClaimLinkResponses = {
+    /**
+     * WhatsApp linked successfully
+     */
+    200: {
+        linked: boolean;
+        waId: string;
+        officialPhoneNumber: string;
+        officialWaLink: string;
+        hasBotConfigured: boolean;
+    };
+};
+
+export type PostV1ChannelsWhatsappClaimLinkResponse = PostV1ChannelsWhatsappClaimLinkResponses[keyof PostV1ChannelsWhatsappClaimLinkResponses];
+
+export type PostV1ChannelsWhatsappUnlinkData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/channels/whatsapp/unlink';
+};
+
+export type PostV1ChannelsWhatsappUnlinkResponses = {
+    /**
+     * WhatsApp unlinked successfully
+     */
+    200: {
+        linked: boolean;
+        waId: string;
+        officialPhoneNumber: string;
+        officialWaLink: string;
+        hasBotConfigured: boolean;
+    };
+};
+
+export type PostV1ChannelsWhatsappUnlinkResponse = PostV1ChannelsWhatsappUnlinkResponses[keyof PostV1ChannelsWhatsappUnlinkResponses];
 
 export type GetV1ChannelsData = {
     body?: never;
@@ -635,7 +773,7 @@ export type GetV1ChannelsResponses = {
         channels: Array<{
             id: string;
             botId: string;
-            channelType: 'slack' | 'discord';
+            channelType: 'slack' | 'discord' | 'whatsapp';
             accountId: string;
             status: 'pending' | 'connected' | 'disconnected' | 'error';
             teamName: string;
@@ -706,7 +844,7 @@ export type GetV1ChannelsByChannelIdStatusResponses = {
     200: {
         id: string;
         botId: string;
-        channelType: 'slack' | 'discord';
+        channelType: 'slack' | 'discord' | 'whatsapp';
         accountId: string;
         status: 'pending' | 'connected' | 'disconnected' | 'error';
         teamName: string;
@@ -873,11 +1011,28 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
             discord?: {
                 enabled?: boolean;
                 groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                dmPolicy?: 'pairing' | 'allowlist' | 'open';
                 accounts: {
                     [key: string]: {
                         enabled?: boolean;
                         token: string;
                         groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    };
+                };
+            };
+            whatsapp?: {
+                enabled?: boolean;
+                allowFrom?: Array<string>;
+                groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                groupAllowFrom?: Array<string>;
+                accounts: {
+                    [key: string]: {
+                        enabled?: boolean;
+                        dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                        allowFrom?: Array<string>;
+                        groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                        groupAllowFrom?: Array<string>;
                     };
                 };
             };
@@ -887,6 +1042,10 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
             match: {
                 channel: string;
                 accountId?: string;
+                peer?: {
+                    kind: 'direct' | 'group' | 'channel';
+                    id: string;
+                };
             };
         }>;
         commands?: {
@@ -1063,11 +1222,28 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                 discord?: {
                     enabled?: boolean;
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     accounts: {
                         [key: string]: {
                             enabled?: boolean;
                             token: string;
                             groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                        };
+                    };
+                };
+                whatsapp?: {
+                    enabled?: boolean;
+                    allowFrom?: Array<string>;
+                    groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                    groupAllowFrom?: Array<string>;
+                    accounts: {
+                        [key: string]: {
+                            enabled?: boolean;
+                            dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                            allowFrom?: Array<string>;
+                            groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                            groupAllowFrom?: Array<string>;
                         };
                     };
                 };
@@ -1077,6 +1253,10 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                 match: {
                     channel: string;
                     accountId?: string;
+                    peer?: {
+                        kind: 'direct' | 'group' | 'channel';
+                        id: string;
+                    };
                 };
             }>;
             commands?: {
@@ -1207,11 +1387,28 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                 discord?: {
                     enabled?: boolean;
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     accounts: {
                         [key: string]: {
                             enabled?: boolean;
                             token: string;
                             groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                        };
+                    };
+                };
+                whatsapp?: {
+                    enabled?: boolean;
+                    allowFrom?: Array<string>;
+                    groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                    dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                    groupAllowFrom?: Array<string>;
+                    accounts: {
+                        [key: string]: {
+                            enabled?: boolean;
+                            dmPolicy?: 'pairing' | 'allowlist' | 'open' | 'disabled';
+                            allowFrom?: Array<string>;
+                            groupPolicy?: 'open' | 'allowlist' | 'disabled';
+                            groupAllowFrom?: Array<string>;
                         };
                     };
                 };
@@ -1221,6 +1418,10 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                 match: {
                     channel: string;
                     accountId?: string;
+                    peer?: {
+                        kind: 'direct' | 'group' | 'channel';
+                        id: string;
+                    };
                 };
             }>;
             commands?: {

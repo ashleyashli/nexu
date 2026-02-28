@@ -20,6 +20,7 @@ import {
   registerSessionRoutes,
 } from "./routes/session-routes.js";
 import { registerSlackEvents } from "./routes/slack-events.js";
+import { registerWhatsAppEvents } from "./routes/whatsapp-events.js";
 
 import type { AppBindings } from "./types.js";
 
@@ -38,6 +39,7 @@ export function createApp() {
   registerAuthRoutes(app);
   registerSlackOAuthCallback(app);
   registerSlackEvents(app);
+  registerWhatsAppEvents(app);
   registerArtifactInternalRoutes(app);
   registerSessionInternalRoutes(app);
 

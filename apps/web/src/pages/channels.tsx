@@ -13,15 +13,19 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, ExternalLink, Hash, Loader2, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import "@/lib/api";
 import {
   deleteV1ChannelsByChannelId,
   getV1Channels,
   getV1ChannelsSlackOauthUrl,
+  getV1ChannelsWhatsappLinkStatus,
   postV1ChannelsDiscordConnect,
   postV1ChannelsSlackConnect,
+  postV1ChannelsWhatsappClaimLink,
+  postV1ChannelsWhatsappUnlink,
 } from "../../lib/api/sdk.gen";
 
 export function ChannelsPage() {
@@ -43,13 +47,14 @@ export function ChannelsPage() {
     <div className="max-w-2xl">
       <h1 className="mb-1 text-2xl font-bold">Channel Configuration</h1>
       <p className="mb-6 text-muted-foreground">
-        Connect your bot to Slack or Discord.
+        Connect your bot to Slack, Discord, or WhatsApp.
       </p>
 
       <Tabs defaultValue="slack">
         <TabsList>
           <TabsTrigger value="slack">Slack</TabsTrigger>
           <TabsTrigger value="discord">Discord</TabsTrigger>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
         </TabsList>
 
         <TabsContent value="slack" className="mt-4">
@@ -72,6 +77,10 @@ export function ChannelsPage() {
           ) : (
             <DiscordSetupView queryClient={queryClient} />
           )}
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="mt-4">
+          <WhatsAppLinkView queryClient={queryClient} />
         </TabsContent>
       </Tabs>
     </div>
@@ -511,6 +520,163 @@ function DiscordSetupView({
             <Button onClick={() => setStep((s) => s + 1)}>Next</Button>
           )}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function WhatsAppLinkView({
+  queryClient,
+}: {
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const waLinkToken = searchParams.get("wa_link") ?? "";
+  const [manualToken, setManualToken] = useState(waLinkToken);
+
+  const { data: linkStatus } = useQuery({
+    queryKey: ["whatsapp-link-status"],
+    queryFn: async () => {
+      const { data, error } = await getV1ChannelsWhatsappLinkStatus();
+      if (error) throw new Error("Failed to load WhatsApp link status");
+      return data;
+    },
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const { data, error } = await postV1ChannelsWhatsappClaimLink({
+        body: { token },
+      });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-link-status"] });
+      toast.success("WhatsApp linked successfully");
+      if (waLinkToken) {
+        searchParams.delete("wa_link");
+        setSearchParams(searchParams, { replace: true });
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await postV1ChannelsWhatsappUnlink();
+      if (error) throw new Error("Failed to unlink WhatsApp");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-link-status"] });
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
+      toast.success("WhatsApp unlinked");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  const autoClaimedRef = useRef(false);
+  useEffect(() => {
+    if (!waLinkToken || autoClaimedRef.current || claimMutation.isPending) {
+      return;
+    }
+
+    autoClaimedRef.current = true;
+    claimMutation.mutate(waLinkToken);
+  }, [waLinkToken, claimMutation]);
+
+  const linked = linkStatus?.linked ?? false;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>WhatsApp Link</CardTitle>
+        <CardDescription>
+          Send a message to the official WhatsApp bot first, then use the link
+          token here to bind your account.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-md border p-3 text-sm">
+          <p>
+            Official number:{" "}
+            {linkStatus?.officialPhoneNumber ?? "Not configured"}
+          </p>
+          {linkStatus?.officialWaLink && (
+            <p>
+              Open chat:{" "}
+              <a
+                href={linkStatus.officialWaLink}
+                className="text-primary underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {linkStatus.officialWaLink}
+              </a>
+            </p>
+          )}
+          <p className="mt-2">
+            Link status: {linked ? "Linked" : "Not linked"}
+          </p>
+          {linked && <p>wa_id: {linkStatus?.waId}</p>}
+          {linked && !linkStatus?.hasBotConfigured && (
+            <p className="mt-2 text-amber-600">
+              WhatsApp linked. Create your bot in Nexu to start receiving
+              replies.
+            </p>
+          )}
+
+          {linked && (
+            <div className="mt-3">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => unlinkMutation.mutate()}
+                disabled={unlinkMutation.isPending}
+              >
+                {unlinkMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Unlink WhatsApp
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {!linked && (
+          <form
+            className="space-y-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!manualToken.trim()) {
+                toast.error("Please enter a link token");
+                return;
+              }
+              claimMutation.mutate(manualToken.trim());
+            }}
+          >
+            <div className="space-y-2">
+              <Label htmlFor="wa-link-token">WhatsApp Link Token</Label>
+              <Input
+                id="wa-link-token"
+                placeholder="Paste token received in WhatsApp"
+                value={manualToken}
+                onChange={(event) => setManualToken(event.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={claimMutation.isPending}>
+              {claimMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Link WhatsApp
+            </Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   );

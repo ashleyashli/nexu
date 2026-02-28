@@ -27,6 +27,7 @@ interface ChannelWithBot {
   channelType: string;
   accountId: string;
   status: string | null;
+  channelConfig: string | null;
   botSlug: string;
   botName: string;
   botModelId: string | null;
@@ -91,6 +92,7 @@ export async function generatePoolConfig(
         channelType: channel.channelType,
         accountId: channel.accountId,
         status: channel.status,
+        channelConfig: channel.channelConfig,
         botSlug: bot.slug,
         botName: bot.name,
         botModelId: bot.modelId,
