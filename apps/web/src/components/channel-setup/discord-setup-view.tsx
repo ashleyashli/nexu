@@ -7,8 +7,8 @@ import {
   CheckCircle2,
   ChevronRight,
   ExternalLink,
-  Lock,
   Loader2,
+  Lock,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -245,8 +245,8 @@ export function DiscordSetupView({
                 <span className="font-medium text-text-secondary">
                   Installation
                 </span>{" "}
-                page. Under &ldquo;Guild Install&rdquo;, add the required
-                scopes and permissions.
+                page. Under &ldquo;Guild Install&rdquo;, add the required scopes
+                and permissions.
               </p>
             </div>
           </div>
@@ -323,8 +323,7 @@ export function DiscordSetupView({
                 <span className="font-medium text-text-secondary">
                   General Information
                 </span>{" "}
-                and{" "}
-                <span className="font-medium text-text-secondary">Bot</span>{" "}
+                and <span className="font-medium text-text-secondary">Bot</span>{" "}
                 pages.
               </p>
             </div>
