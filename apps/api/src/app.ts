@@ -21,11 +21,11 @@ import { registerInviteRoutes } from "./routes/invite-routes.js";
 import { registerModelRoutes } from "./routes/model-routes.js";
 import { registerOnboardingRoutes } from "./routes/onboarding-routes.js";
 import { registerPoolRoutes } from "./routes/pool-routes.js";
+import { registerSecretRoutes } from "./routes/secret-routes.js";
 import {
   registerSessionInternalRoutes,
   registerSessionRoutes,
 } from "./routes/session-routes.js";
-import { registerSecretRoutes } from "./routes/secret-routes.js";
 import { registerSkillRoutes } from "./routes/skill-routes.js";
 import { registerSlackEvents } from "./routes/slack-events.js";
 import { registerUserRoutes } from "./routes/user-routes.js";

@@ -17,8 +17,8 @@ import {
 } from "../db/schema/index.js";
 import { decrypt } from "../lib/crypto.js";
 import { BaseError, ServiceError } from "../lib/error.js";
-import { requireInternalToken } from "../middleware/internal-auth.js";
 import { logger } from "../lib/logger.js";
+import { requireInternalToken } from "../middleware/internal-auth.js";
 
 import type { AppBindings } from "../types.js";
 
