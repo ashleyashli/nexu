@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { logger } from "./logger.js";
 
 interface FeedbackPayload {
@@ -51,8 +52,63 @@ export async function getFeishuTenantToken(
   }
 }
 
+/** Block SSRF: reject private/loopback/link-local IPs and non-https schemes. */
+function isSafeUrl(raw: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return false;
+
+  const hostname = parsed.hostname;
+
+  // Reject IP-literal hostnames that resolve to private/reserved ranges
+  if (isIP(hostname)) {
+    const parts = hostname.split(".");
+    if (hostname === "127.0.0.1" || hostname === "0.0.0.0") return false;
+    if (hostname === "::1" || hostname === "::") return false;
+    // 10.x.x.x
+    if (parts[0] === "10") return false;
+    // 172.16-31.x.x
+    if (parts[0] === "172") {
+      const second = Number.parseInt(parts[1] ?? "", 10);
+      if (second >= 16 && second <= 31) return false;
+    }
+    // 192.168.x.x
+    if (parts[0] === "192" && parts[1] === "168") return false;
+    // 169.254.x.x (link-local)
+    if (parts[0] === "169" && parts[1] === "254") return false;
+    return true;
+  }
+
+  // Block common dangerous hostnames
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".local") ||
+    hostname.endsWith(".internal") ||
+    hostname === "metadata.google.internal" ||
+    hostname === "169.254.169.254"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 async function downloadImage(url: string): Promise<Buffer | null> {
   try {
+    if (!isSafeUrl(url)) {
+      logger.warn({
+        message: "image_download_blocked_ssrf",
+        scope: "feishu-webhook",
+        url,
+      });
+      return null;
+    }
+
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
     });
