@@ -56,6 +56,56 @@
   --color-danger: #dc2626;
 }
 
+:root[data-theme="dark"] {
+  /* shadcn tokens */
+  --color-background: #0b0f14;
+  --color-foreground: #f4f6f8;
+  --color-card: #111821;
+  --color-card-foreground: #f4f6f8;
+  --color-popover: #111821;
+  --color-popover-foreground: #f4f6f8;
+  --color-primary: #f4f6f8;
+  --color-primary-foreground: #0b0f14;
+  --color-secondary: #17212c;
+  --color-secondary-foreground: #f4f6f8;
+  --color-muted: #1e2936;
+  --color-muted-foreground: #a3b0c0;
+  --color-accent: #f4f6f8;
+  --color-accent-foreground: #0b0f14;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #0b0f14;
+  --color-border: #243142;
+  --color-input: #243142;
+  --color-ring: #f4f6f8;
+
+  /* Design system — Surface */
+  --color-surface-0: #0b0f14;
+  --color-surface-1: #111821;
+  --color-surface-2: #17212c;
+  --color-surface-3: #1f2b38;
+  --color-surface-4: #263444;
+  --color-surface-5: #2e3f51;
+
+  /* Design system — Text */
+  --color-text-primary: #f4f6f8;
+  --color-text-secondary: #c4cfdb;
+  --color-text-tertiary: #9aa8b8;
+  --color-text-muted: #748396;
+
+  /* Design system — Accent */
+  --color-accent-hover: #e3e8ef;
+  --color-accent-subtle: rgba(244, 246, 248, 0.12);
+  --color-accent-fg: #0b0f14;
+
+  /* Design system — Border */
+  --color-border-subtle: #1f2b38;
+  --color-border-hover: #34475d;
+
+  /* Status */
+  --color-success: #22c55e;
+  --color-danger: #f87171;
+}
+
 @layer base {
   * {
     @apply border-border;
