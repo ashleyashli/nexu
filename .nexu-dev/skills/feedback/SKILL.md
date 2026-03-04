@@ -5,7 +5,7 @@ description: Send feedback to the Nexu team. Use when the user says /feedback fo
 
 # Feedback
 
-Collect user feedback and forward it to the Nexu team.
+Collect user feedback and forward it to the Nexu team. Conversation history and images are extracted automatically by a script — you do NOT need to copy-paste messages or scan for image URLs.
 
 ## When triggered
 
@@ -15,42 +15,35 @@ The user sends `/feedback <message>` to share feedback, report issues, or make s
 
 1. **Extract feedback content**: The text after `/feedback` is the user's feedback. If empty, ask the user to provide their feedback.
 
-2. **Gather context**:
+2. **Gather identifiers**:
    - **agentId**: Your own agent ID. Find it from the `Runtime:` line in your system prompt — it appears as `agent=XXXXXX`. It is a cuid2 string like `y9cnvdlucvyaokp20mqrsoa9`. Do NOT use "main" or other placeholder values.
    - **channel**: The current channel type — one of `feishu`, `slack`, or `discord`.
    - **sender**: The sender's display name or username as shown in the conversation. If you only have a user ID, use that. Do NOT use generic "user" or "User".
-   - **conversationContext**: Copy the actual messages from your context window (up to the last 30 messages). Format each message on its own line as:
-     ```
-     👤 message content
-     🤖 assistant reply
-     ```
-     Use 👤 for user messages and 🤖 for your (assistant) replies. This must be real messages, NOT a summary.
-   - **imageUrls**: Scan the recent conversation for image URLs. Include any `https://` URL that ends with `.png`, `.jpg`, `.jpeg`, `.gif`, or `.webp`, as well as Feishu image CDN URLs (containing `open.feishu.cn` or `lf-flow-web-cdn.doubao.com`). Collect up to 5 image URLs. If none found, omit this field.
 
-3. **Submit feedback**: Use the exec tool to run a curl command. Build the JSON payload as a variable first, then POST it:
+3. **Run the submit script**: Use the exec tool to run the following command. The script automatically reads your conversation history and any images from the session file — you do NOT need to provide them manually.
 
 ```bash
-PAYLOAD='{"content":"<ESCAPED_FEEDBACK>","channel":"<CHANNEL_TYPE>","sender":"<SENDER>","agentId":"<AGENT_ID>","conversationContext":"<ESCAPED_CONTEXT>","imageUrls":["<URL1>","<URL2>"]}'
-curl -s -X POST "${RUNTIME_API_BASE_URL:-http://localhost:3000}/api/internal/feedback" \
-  -H "x-internal-token: ${SKILL_API_TOKEN:-gw-secret-token}" \
-  -H "Content-Type: application/json" \
-  -d "$PAYLOAD"
+SKILL_PATH="<SKILL_LOCATION>"
+node "$(dirname "${SKILL_PATH/#\~/$HOME}")/submit-feedback.mjs" \
+  --content "<ESCAPED_FEEDBACK>" \
+  --sender "<SENDER>" \
+  --channel "<CHANNEL_TYPE>" \
+  --agent-id "<AGENT_ID>"
 ```
 
 Important:
-- Replace ALL `<...>` placeholders with actual values BEFORE running the command
-- Properly escape JSON special characters in strings (double quotes → `\"`, newlines → `\n`, backslashes → `\\`)
-- Keep conversationContext under 8000 characters
-- For `imageUrls`: include only valid URLs found in conversation; omit the field entirely (or use `[]`) if no images found
-- The `${VAR:-default}` syntax provides fallback values; do NOT replace these — they are shell expressions
+- Replace `<SKILL_LOCATION>` with the exact path from the `<location>` tag in your system prompt (may contain `~`)
+- The `${SKILL_PATH/#\~/$HOME}` expansion handles tilde (`~`) → absolute path conversion automatically
+- Replace ALL other `<...>` placeholders with actual values BEFORE running the command
+- Properly escape shell special characters in the feedback content (single quotes → `'\''`, etc.)
 
 4. **Confirm to user**:
-   - If the curl returns `{"ok":true}`, reply: "Thanks for your feedback! It has been forwarded to the Nexu team."
+   - If the output contains `{"ok":true}`, reply: "Thanks for your feedback! It has been forwarded to the Nexu team."
    - If it fails, reply: "Sorry, there was an issue sending your feedback. Please try again later."
 
 ## Important
 
 - Do NOT modify, filter, or censor the user's feedback content. Forward it as-is.
 - Do NOT ask for confirmation before sending — the user already expressed intent by using /feedback.
-- The conversationContext must contain ACTUAL messages, not a one-line summary.
+- Do NOT manually build conversationContext or imageUrls — the script handles this automatically.
 - The API will automatically look up the bot owner's email and bot name from the agentId, so focus on getting the agentId right.

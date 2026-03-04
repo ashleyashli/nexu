@@ -12,6 +12,7 @@ interface FeedbackPayload {
   imageUrls?: string[];
   feishuAppId?: string;
   feishuAppSecret?: string;
+  preUploadedImageKeys?: string[];
 }
 
 interface ProcessedImages {
@@ -22,7 +23,7 @@ interface ProcessedImages {
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB — Feishu upload limit
 const IMAGE_FETCH_TIMEOUT_MS = 15_000;
 
-async function getFeishuTenantToken(
+export async function getFeishuTenantToken(
   appId: string,
   appSecret: string,
 ): Promise<string | null> {
@@ -85,7 +86,7 @@ async function downloadImage(url: string): Promise<Buffer | null> {
   }
 }
 
-async function uploadImageToFeishu(
+export async function uploadImageToFeishu(
   buffer: Buffer,
   tenantToken: string,
 ): Promise<string | null> {
@@ -111,6 +112,150 @@ async function uploadImageToFeishu(
     return data.data.image_key;
   } catch {
     return null;
+  }
+}
+
+export async function uploadFileToFeishu(
+  buffer: Buffer,
+  fileName: string,
+  tenantToken: string,
+): Promise<string | null> {
+  try {
+    const form = new FormData();
+    form.append("file_type", "stream");
+    form.append("file_name", fileName);
+    form.append("file", new Blob([buffer]), fileName);
+
+    const resp = await fetch("https://open.feishu.cn/open-apis/im/v1/files", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tenantToken}` },
+      body: form,
+    });
+
+    if (!resp.ok) return null;
+
+    const data = (await resp.json()) as {
+      code: number;
+      data?: { file_key?: string };
+    };
+
+    if (data.code !== 0 || !data.data?.file_key) return null;
+    return data.data.file_key;
+  } catch {
+    return null;
+  }
+}
+
+export async function sendFeishuCardMessage(
+  card: Record<string, unknown>,
+  chatId: string,
+  tenantToken: string,
+): Promise<string | null> {
+  try {
+    const resp = await fetch(
+      "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${tenantToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          receive_id: chatId,
+          msg_type: "interactive",
+          content: JSON.stringify(card),
+        }),
+      },
+    );
+
+    if (!resp.ok) return null;
+
+    const data = (await resp.json()) as {
+      code: number;
+      data?: { message_id?: string };
+    };
+
+    if (data.code !== 0) return null;
+    return data.data?.message_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function sendFeishuImageMessage(
+  imageKey: string,
+  chatId: string,
+  tenantToken: string,
+  replyMessageId?: string,
+): Promise<boolean> {
+  try {
+    const content = JSON.stringify({ image_key: imageKey });
+    const url = replyMessageId
+      ? `https://open.feishu.cn/open-apis/im/v1/messages/${replyMessageId}/reply`
+      : "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id";
+
+    const reqBody = replyMessageId
+      ? { msg_type: "image", content }
+      : { receive_id: chatId, msg_type: "image", content };
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tenantToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(reqBody),
+    });
+
+    if (!resp.ok) return false;
+    const data = (await resp.json()) as { code: number };
+    return data.code === 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function sendFeishuFileMessage(
+  fileKey: string,
+  chatId: string,
+  tenantToken: string,
+  replyMessageId?: string,
+): Promise<boolean> {
+  try {
+    const body: Record<string, unknown> = {
+      receive_id: chatId,
+      msg_type: "file",
+      content: JSON.stringify({ file_key: fileKey }),
+    };
+    if (replyMessageId) {
+      body.reply_in_thread = true;
+      // Use reply endpoint for thread replies
+    }
+
+    const url = replyMessageId
+      ? `https://open.feishu.cn/open-apis/im/v1/messages/${replyMessageId}/reply`
+      : "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id";
+
+    // Reply endpoint uses different body shape
+    const reqBody = replyMessageId
+      ? { msg_type: "file", content: JSON.stringify({ file_key: fileKey }) }
+      : body;
+
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tenantToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(reqBody),
+    });
+
+    if (!resp.ok) return false;
+
+    const data = (await resp.json()) as { code: number };
+    return data.code === 0;
+  } catch {
+    return false;
   }
 }
 
@@ -217,17 +362,6 @@ function buildCardElements(
     },
   });
 
-  // Embedded images
-  if (images && images.embedded.length > 0) {
-    for (const imageKey of images.embedded) {
-      elements.push({
-        tag: "img",
-        img_key: imageKey,
-        alt: { tag: "plain_text", content: "feedback image" },
-      });
-    }
-  }
-
   // Linked images (fallback for oversized / failed uploads)
   if (images && images.linked.length > 0) {
     const links = images.linked
@@ -272,18 +406,10 @@ function buildCardElements(
   return elements;
 }
 
+/** Send feedback card. Returns message_id if sent via Bot API, or "webhook" if sent via webhook. */
 export async function sendFeishuWebhook(
   payload: FeedbackPayload,
-): Promise<boolean> {
-  const webhookUrl = process.env.FEISHU_FEEDBACK_WEBHOOK_URL;
-  if (!webhookUrl) {
-    logger.warn({
-      message: "feishu_feedback_webhook_not_configured",
-      scope: "feishu-webhook",
-    });
-    return false;
-  }
-
+): Promise<string | null> {
   let images: ProcessedImages | undefined;
   if (
     payload.imageUrls &&
@@ -304,32 +430,61 @@ export async function sendFeishuWebhook(
       linked: images.linked.length,
     });
   } else if (payload.imageUrls && payload.imageUrls.length > 0) {
-    // No Feishu credentials — all images fall back to links
     images = { embedded: [], linked: payload.imageUrls };
   }
 
-  const body = {
-    msg_type: "interactive",
-    card: {
-      header: {
-        title: {
-          tag: "plain_text",
-          content:
-            payload.content.length > 60
-              ? `${payload.content.slice(0, 60)}...`
-              : payload.content,
-        },
-        template: "orange",
+  // Merge pre-uploaded image keys (from imageData / script-based flow)
+  if (payload.preUploadedImageKeys && payload.preUploadedImageKeys.length > 0) {
+    if (!images) images = { embedded: [], linked: [] };
+    images.embedded.push(...payload.preUploadedImageKeys);
+  }
+
+  const card = {
+    header: {
+      title: {
+        tag: "plain_text",
+        content:
+          payload.content.length > 60
+            ? `${payload.content.slice(0, 60)}...`
+            : payload.content,
       },
-      elements: buildCardElements(payload, images),
+      template: "orange",
     },
+    elements: buildCardElements(payload, images),
   };
+
+  // Prefer Bot API (returns message_id for file replies)
+  const chatId = process.env.FEISHU_FEEDBACK_CHAT_ID;
+  if (chatId && payload.feishuAppId && payload.feishuAppSecret) {
+    const tenantToken = await getFeishuTenantToken(
+      payload.feishuAppId,
+      payload.feishuAppSecret,
+    );
+    if (tenantToken) {
+      const messageId = await sendFeishuCardMessage(card, chatId, tenantToken);
+      if (messageId) return messageId;
+      logger.warn({
+        message: "feishu_bot_api_card_failed_fallback_webhook",
+        scope: "feishu-webhook",
+      });
+    }
+  }
+
+  // Fallback to webhook
+  const webhookUrl = process.env.FEISHU_FEEDBACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    logger.warn({
+      message: "feishu_feedback_not_configured",
+      scope: "feishu-webhook",
+    });
+    return null;
+  }
 
   try {
     const resp = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ msg_type: "interactive", card }),
     });
 
     if (!resp.ok) {
@@ -339,16 +494,16 @@ export async function sendFeishuWebhook(
         status: resp.status,
         statusText: resp.statusText,
       });
-      return false;
+      return null;
     }
 
-    return true;
+    return "webhook";
   } catch (error) {
     logger.warn({
       message: "feishu_feedback_webhook_error",
       scope: "feishu-webhook",
       error: error instanceof Error ? error.message : String(error),
     });
-    return false;
+    return null;
   }
 }

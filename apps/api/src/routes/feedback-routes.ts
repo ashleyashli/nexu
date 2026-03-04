@@ -4,7 +4,14 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { botChannels, bots, channelCredentials } from "../db/schema/index.js";
 import { decrypt } from "../lib/crypto.js";
-import { sendFeishuWebhook } from "../lib/feishu-webhook.js";
+import {
+  getFeishuTenantToken,
+  sendFeishuFileMessage,
+  sendFeishuImageMessage,
+  sendFeishuWebhook,
+  uploadFileToFeishu,
+  uploadImageToFeishu,
+} from "../lib/feishu-webhook.js";
 import { logger } from "../lib/logger.js";
 import { requireSkillToken } from "../middleware/internal-auth.js";
 import type { AppBindings } from "../types.js";
@@ -20,6 +27,14 @@ const feedbackBodySchema = z.object({
   agentId: z.string().optional(),
   conversationContext: z.string().max(10000).optional(),
   imageUrls: z.array(z.string().url()).max(10).optional(),
+  imageData: z
+    .array(z.object({ data: z.string(), mimeType: z.string() }))
+    .max(5)
+    .optional(),
+  fileData: z
+    .array(z.object({ data: z.string(), fileName: z.string() }))
+    .max(5)
+    .optional(),
 });
 
 const feedbackResponseSchema = z.object({
@@ -150,12 +165,40 @@ export function registerFeedbackRoutes(app: OpenAPIHono<AppBindings>) {
       content_length: body.content.length,
     });
 
+    const hasImages =
+      (body.imageUrls && body.imageUrls.length > 0) ||
+      (body.imageData && body.imageData.length > 0);
+    const hasFiles = body.fileData && body.fileData.length > 0;
+
     const feishuCreds =
-      body.imageUrls && body.imageUrls.length > 0 && body.agentId
+      (hasImages || hasFiles) && body.agentId
         ? await lookupFeishuCredentials(body.agentId)
         : null;
 
-    const sent = await sendFeishuWebhook({
+    // Pre-upload base64 images from imageData
+    const preUploadedImageKeys: string[] = [];
+
+    if (body.imageData && body.imageData.length > 0 && feishuCreds) {
+      const tenantToken = await getFeishuTenantToken(
+        feishuCreds.appId,
+        feishuCreds.appSecret,
+      );
+      if (tenantToken) {
+        const results = await Promise.allSettled(
+          body.imageData.map((img) =>
+            uploadImageToFeishu(Buffer.from(img.data, "base64"), tenantToken),
+          ),
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled" && r.value) {
+            preUploadedImageKeys.push(r.value);
+          }
+        }
+      }
+    }
+
+    // sendFeishuWebhook returns message_id (Bot API) or "webhook" or null
+    const sendResult = await sendFeishuWebhook({
       content: body.content,
       channel: body.channel,
       sender: body.sender,
@@ -167,14 +210,59 @@ export function registerFeedbackRoutes(app: OpenAPIHono<AppBindings>) {
       imageUrls: body.imageUrls,
       feishuAppId: feishuCreds?.appId,
       feishuAppSecret: feishuCreds?.appSecret,
+      preUploadedImageKeys:
+        preUploadedImageKeys.length > 0 ? preUploadedImageKeys : undefined,
     });
 
-    if (!sent) {
+    if (!sendResult) {
       logger.warn({
         message: "feedback_forward_failed",
         scope: "feedback",
         agent_id: body.agentId,
       });
+    }
+
+    // Send images and files as replies to the card message
+    const feedbackChatId = process.env.FEISHU_FEEDBACK_CHAT_ID;
+    const replyMessageId =
+      sendResult && sendResult !== "webhook" ? sendResult : undefined;
+    const hasAttachments =
+      preUploadedImageKeys.length > 0 || (hasFiles && body.fileData);
+
+    if (hasAttachments && feishuCreds && feedbackChatId) {
+      const tenantToken = await getFeishuTenantToken(
+        feishuCreds.appId,
+        feishuCreds.appSecret,
+      );
+      if (tenantToken) {
+        // Send images as replies
+        for (const imageKey of preUploadedImageKeys) {
+          await sendFeishuImageMessage(
+            imageKey,
+            feedbackChatId,
+            tenantToken,
+            replyMessageId,
+          );
+        }
+        // Send files as replies
+        if (body.fileData) {
+          for (const file of body.fileData) {
+            const fileKey = await uploadFileToFeishu(
+              Buffer.from(file.data, "base64"),
+              file.fileName,
+              tenantToken,
+            );
+            if (fileKey) {
+              await sendFeishuFileMessage(
+                fileKey,
+                feedbackChatId,
+                tenantToken,
+                replyMessageId,
+              );
+            }
+          }
+        }
+      }
     }
 
     return c.json({ ok: true }, 200);
