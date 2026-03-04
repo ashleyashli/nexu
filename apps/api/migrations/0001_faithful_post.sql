@@ -11,3 +11,5 @@ CREATE TABLE "bot_feature_flags" (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "bot_feature_flags_bot_feature_key_idx" ON "bot_feature_flags" USING btree ("bot_id","feature_key");
+--> statement-breakpoint
+TRUNCATE TABLE "bot_feature_flags";
