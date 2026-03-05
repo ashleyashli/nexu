@@ -170,9 +170,9 @@ step_validate() {
   SLUG="${1:-}"
   DIR="${2:-}"
   AGENT_ID="${3:-}"
-  # Prefer runtime session key from environment (authoritative), then fallback
-  # to explicit arg for compatibility with older invocations.
-  SESSION_KEY_INPUT="${OPENCLAW_SESSION_KEY:-${4:-}}"
+  # Prefer explicit arg (nexu session key from session-search.sh), then
+  # fallback to OPENCLAW_SESSION_KEY env var.
+  SESSION_KEY_INPUT="${4:-${OPENCLAW_SESSION_KEY:-}}"
   MESSAGE_REF_INPUT="${5:-${OPENCLAW_MESSAGE_ID:-}}"
   THREAD_REF_INPUT="${6:-${OPENCLAW_THREAD_ID:-}}"
   ACCOUNT_ID_INPUT="${7:-${OPENCLAW_ACCOUNT_ID:-}}"
