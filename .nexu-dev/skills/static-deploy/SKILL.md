@@ -26,32 +26,33 @@ Any static files: HTML, CSS, JS, images, fonts, etc. Common use cases:
    - Lowercase alphanumeric + hyphens only, max 63 characters
    - Reuse the same slug for redeployments
    - Ask user to confirm if ambiguous
-3. Resolve session-related parameters from session files first, then run deploy.
-
-Resolve (example):
-
-```bash
-"$SKILL_DIR/scripts/session-search.sh" --message-ref <message-ref> --agent-id <agent-id>
-```
-
-Then run deploy:
+3. **MANDATORY — Resolve session key first.** You MUST run `session-search.sh`
+   before `deploy.sh`. Do NOT skip this step. Do NOT use `OPENCLAW_SESSION_KEY`
+   directly — it is an OpenClaw runtime ID, not a Nexu session key.
 
 ```bash
-"$SKILL_DIR/scripts/deploy.sh" <project-slug> <directory> <agent-id> <session-key>
+SEARCH_RESULT=$("$SKILL_DIR/scripts/session-search.sh" --message-ref <message-ref> --agent-id <agent-id>)
+SESSION_KEY=$(echo "$SEARCH_RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin)['deployParams']['nexuSessionKey'])")
 ```
 
-Optional: pass source context so deploy will also persist/update binding files:
+4. Run deploy with the resolved session key as arg #4:
 
 ```bash
-"$SKILL_DIR/scripts/deploy.sh" <project-slug> <directory> <agent-id> <session-key> <message-ref> <thread-ref> <account-id> <channel-id> <channel-type> <sender-ref>
+"$SKILL_DIR/scripts/deploy.sh" <project-slug> <directory> <agent-id> "$SESSION_KEY"
 ```
 
-`agent-id` is required. The script uses it to resolve the corresponding `botId`
-from `nexu-context.json` when recording deployment artifacts.
-`session-key` is required if you want the record to appear in `/workspace/sessions/:id`.
-Prefer runtime `OPENCLAW_SESSION_KEY` (authoritative). Never use `agent-id` as
-`session-key`.
-4. Parse the JSON output and report to user:
+   - `agent-id` is required — used to resolve `botId` from `nexu-context.json`
+   - `session-key` (arg #4) is required — the deployment record will appear under this session
+   - Never pass `agent-id` as `session-key`; they are different values
+   - Never use `OPENCLAW_SESSION_KEY` as `session-key` — wrong format
+
+   Optional: pass source context so deploy will also persist/update binding files:
+
+```bash
+"$SKILL_DIR/scripts/deploy.sh" <project-slug> <directory> <agent-id> "$SESSION_KEY" <message-ref> <thread-ref> <account-id> <channel-id> <channel-type> <sender-ref>
+```
+
+5. Parse the JSON output and report to user:
    - Brief summary of what was deployed
    - Live URL from the `url` field
    - **Important:** Tell the user that Cloudflare Pages propagation takes ~3 minutes. The URL may not work immediately after the first deploy. For redeployments, it's usually faster.
@@ -70,8 +71,8 @@ Prefer runtime `OPENCLAW_SESSION_KEY` (authoritative). Never use `agent-id` as
 - Do not set `DEPLOY_BACKEND` or any other env overrides — the script handles everything
 - Always pass the caller `<agent-id>` as arg #3 to `deploy.sh`
 - Always pass the current `<session-key>` as arg #4 to ensure deployment appears in the session Deployments list
+- **Never use `OPENCLAW_SESSION_KEY` env var as session-key** — it is an OpenClaw runtime ID (wrong format). Always resolve via `session-search.sh` first
 - Never pass `<agent-id>` as `<session-key>`; they are different values
-- Prefer resolving `<session-key>` from `session-search.sh` output instead of guessing from prompt text
 - If source refs are available, pass them to `deploy.sh` so it can write/update `sessions.json` + rolling `binding-*.jsonl` records
 - Do not hand-edit source files just to add cache-busting query params; the deploy script handles cache revalidation via a staged `_headers` file
 - If the script fails, show the `message` field from the JSON error to the user
