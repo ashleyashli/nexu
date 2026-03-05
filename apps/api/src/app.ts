@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
-import { Span, Trace } from "./lib/trace-decorator.js";
+import { Span } from "./lib/trace-decorator.js";
 import { authMiddleware } from "./middleware/auth.js";
 import {
   errorMiddleware,
@@ -9,6 +9,7 @@ import {
   resolveErrorHandling,
 } from "./middleware/error-middleware.js";
 import { requestLoggerMiddleware } from "./middleware/request-logger.js";
+import { requestTraceMiddleware } from "./middleware/request-trace.js";
 import {
   registerArtifactInternalRoutes,
   registerArtifactRoutes,
@@ -32,13 +33,14 @@ import {
 import { registerSkillRoutes } from "./routes/skill-routes.js";
 import { registerSlackEvents } from "./routes/slack-events.js";
 import { registerUserRoutes } from "./routes/user-routes.js";
+import { registerWorkspaceTemplateRoutes } from "./routes/workspace-template-routes.js";
 
 import type { AppBindings } from "./types.js";
 
 class HealthHandler {
   constructor(private readonly commitHash?: string) {}
 
-  @Trace("api.health")
+  @Span("api.health")
   async handle(c: Context<AppBindings>): Promise<Response> {
     const payload = await this.buildPayload();
     return c.json(payload);
@@ -63,6 +65,7 @@ export function createApp() {
   const commitHash = process.env.COMMIT_HASH;
   const healthHandler = new HealthHandler(commitHash);
 
+  app.use("*", requestTraceMiddleware);
   app.use("*", requestLoggerMiddleware);
   app.use("*", errorMiddleware);
   app.use(
@@ -80,6 +83,7 @@ export function createApp() {
   registerSessionInternalRoutes(app);
   registerSecretRoutes(app);
   registerSkillRoutes(app);
+  registerWorkspaceTemplateRoutes(app);
   registerFeedbackRoutes(app);
 
   app.use("/api/v1/*", authMiddleware);
@@ -99,6 +103,7 @@ export function createApp() {
     info: { title: "Nexu API", version: "1.0.0" },
   });
 
+  // Infrastructure health endpoint (k8s/lb/docker probes).
   app.get("/health", (c) => healthHandler.handle(c));
 
   app.onError((error, c) => {
