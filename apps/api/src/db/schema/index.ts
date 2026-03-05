@@ -233,6 +233,7 @@ export const inviteCodes = pgTable("invite_codes", {
   pk: serial("pk").primaryKey(),
   id: text("id").notNull().unique(),
   code: text("code").notNull().unique(),
+  label: text("label"),
   maxUses: integer("max_uses").default(100),
   usedCount: integer("used_count").default(0),
   createdBy: text("created_by"),
