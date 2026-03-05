@@ -130,6 +130,7 @@ export const usageMetrics = pgTable("usage_metrics", {
   botId: text("bot_id").notNull(),
   periodStart: text("period_start").notNull(),
   periodEnd: text("period_end").notNull(),
+  metricSource: text("metric_source"),
   messageCount: integer("message_count").default(0),
   tokenCount: integer("token_count").default(0),
   createdAt: text("created_at")
