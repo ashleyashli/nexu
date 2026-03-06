@@ -1,3 +1,4 @@
+import { BrandMark } from "@/components/brand-mark";
 import { DiscordSetupView } from "@/components/channel-setup/discord-setup-view";
 import { SlackOAuthView } from "@/components/channel-setup/slack-oauth-view";
 import { identify, track } from "@/lib/tracking";
@@ -1593,9 +1594,7 @@ export function OnboardingPage() {
       {/* Left panel — dark sidebar */}
       <div className="hidden lg:flex w-[400px] shrink-0 bg-[#111111] flex-col justify-between p-8 relative overflow-hidden">
         <div className="flex items-center gap-2.5">
-          <div className="flex justify-center items-center w-7 h-7 rounded-lg bg-white/15">
-            <span className="text-xs font-bold text-white">N</span>
-          </div>
+          <BrandMark className="w-7 h-7 shrink-0" />
           <span className="text-[14px] font-semibold text-white/90">Nexu</span>
         </div>
 
@@ -1632,17 +1631,15 @@ export function OnboardingPage() {
       {/* Right panel — content */}
       <div className="flex-1 flex flex-col bg-surface-0">
         {/* Mobile logo */}
-        <div className="flex items-center gap-2.5 px-6 h-14 border-b border-border lg:hidden">
-          <div className="flex justify-center items-center w-7 h-7 rounded-lg bg-accent">
-            <span className="text-xs font-bold text-accent-foreground">N</span>
-          </div>
+        <div className="flex items-center gap-2.5 px-4 sm:px-6 h-14 border-b border-border lg:hidden">
+          <BrandMark className="w-7 h-7 shrink-0" />
           <span className="text-sm font-semibold tracking-tight text-text-primary">
             Nexu
           </span>
         </div>
 
         {/* Step indicator */}
-        <div className="px-8 pt-8 pb-6">
+        <div className="px-4 sm:px-6 md:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6">
           <div className="max-w-md mx-auto">
             <div className="flex items-center gap-1">
               {STEPS.map((step, i) => (
@@ -1660,7 +1657,7 @@ export function OnboardingPage() {
                 </div>
               ))}
             </div>
-            <div className="flex mt-2.5">
+            <div className="hidden sm:flex mt-2.5">
               {STEPS.map((step, i) => (
                 <span
                   key={step.id}
@@ -1670,11 +1667,18 @@ export function OnboardingPage() {
                 </span>
               ))}
             </div>
+            <div className="sm:hidden mt-2 text-center text-[11px] text-text-secondary">
+              Step {currentStep + 1} / {STEPS.length} ·{" "}
+              {STEPS[currentStep]?.label}
+            </div>
           </div>
         </div>
 
         {/* Step content */}
-        <main className="flex-1 flex items-center justify-center px-6">
+        <main
+          className="flex-1 flex items-center justify-center px-4 sm:px-6 pb-6"
+          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        >
           <div className="w-full max-w-lg">{renderStep()}</div>
         </main>
       </div>
