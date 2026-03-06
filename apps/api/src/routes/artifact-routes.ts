@@ -41,7 +41,9 @@ async function resolveArtifactSessionKey(input: {
   const rawSessionKey = input.sessionKey?.trim();
   const rawChatId = input.chatId?.trim();
   const rawThreadId = input.threadId?.trim();
-  const normalizedThreadId = rawThreadId ? rawThreadId.toLowerCase() : undefined;
+  const normalizedThreadId = rawThreadId
+    ? rawThreadId.toLowerCase()
+    : undefined;
 
   if (rawSessionKey) {
     if (!rawSessionKey.toLowerCase().startsWith("agent:")) {
@@ -62,7 +64,9 @@ async function resolveArtifactSessionKey(input: {
   if (rawChatId.startsWith("user:")) {
     const base = `agent:${normalizedBotId}:main`;
     return {
-      sessionKey: normalizedThreadId ? `${base}:thread:${normalizedThreadId}` : base,
+      sessionKey: normalizedThreadId
+        ? `${base}:thread:${normalizedThreadId}`
+        : base,
     };
   }
 
@@ -97,18 +101,24 @@ async function resolveArtifactSessionKey(input: {
     return { error: "No matching session found for chatId" };
   }
 
-  const uniqueBaseKeys = new Set(rows.map((row) => normalizeSessionKey(row.sessionKey)));
+  const uniqueBaseKeys = new Set(
+    rows.map((row) => normalizeSessionKey(row.sessionKey)),
+  );
   if (uniqueBaseKeys.size !== 1) {
     return { error: "Ambiguous session resolution for chatId" };
   }
 
-  const baseKey = rows[0]?.sessionKey ? normalizeSessionKey(rows[0].sessionKey) : undefined;
+  const baseKey = rows[0]?.sessionKey
+    ? normalizeSessionKey(rows[0].sessionKey)
+    : undefined;
   if (!baseKey) {
     return { error: "No matching session found for chatId" };
   }
 
   return {
-    sessionKey: normalizedThreadId ? `${baseKey}:thread:${normalizedThreadId}` : baseKey,
+    sessionKey: normalizedThreadId
+      ? `${baseKey}:thread:${normalizedThreadId}`
+      : baseKey,
   };
 }
 
@@ -317,7 +327,9 @@ export function registerArtifactInternalRoutes(app: OpenAPIHono<AppBindings>) {
       );
     }
 
-    const normalizedOwnerKey = owner.sessionKey ? normalizeSessionKey(owner.sessionKey) : null;
+    const normalizedOwnerKey = owner.sessionKey
+      ? normalizeSessionKey(owner.sessionKey)
+      : null;
     const normalizedResolvedKey = resolved.sessionKey
       ? normalizeSessionKey(resolved.sessionKey)
       : null;

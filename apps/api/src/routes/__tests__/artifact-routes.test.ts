@@ -236,7 +236,9 @@ describe("Artifact Internal Routes", () => {
 
       expect(res.status).toBe(409);
       const body = await res.json();
-      expect(body.message).toBe("previewUrl is already in use by another session");
+      expect(body.message).toBe(
+        "previewUrl is already in use by another session",
+      );
     });
   });
 
@@ -472,9 +474,13 @@ describe("Artifact Internal Routes", () => {
 
       expect(second.status).toBe(409);
       const body = await second.json();
-      expect(body.message).toBe("previewUrl is already in use by another session");
+      expect(body.message).toBe(
+        "previewUrl is already in use by another session",
+      );
 
-      const { rows } = await setupPool.query("SELECT session_key FROM artifacts");
+      const { rows } = await setupPool.query(
+        "SELECT session_key FROM artifacts",
+      );
       expect(rows).toHaveLength(1);
     });
 
@@ -502,7 +508,9 @@ describe("Artifact Internal Routes", () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.sessionKey).toBe("agent:bot-test-1:slack:channel:c0ajkg60h6d");
+      expect(body.sessionKey).toBe(
+        "agent:bot-test-1:slack:channel:c0ajkg60h6d",
+      );
     });
 
     it("appends thread ids to resolved channel sessions", async () => {

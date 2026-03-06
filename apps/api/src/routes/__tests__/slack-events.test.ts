@@ -20,7 +20,9 @@ describe("buildSlackSessionKey", () => {
         threadTs: "1770408518.451689",
         isIm: false,
       }),
-    ).toBe("agent:bot-test-1:slack:channel:c0ajkg60h6d:thread:1770408518.451689");
+    ).toBe(
+      "agent:bot-test-1:slack:channel:c0ajkg60h6d:thread:1770408518.451689",
+    );
   });
 
   it("collapses DMs to the main session key", () => {
