@@ -3,6 +3,7 @@ import { track } from "@/lib/tracking";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import {
+  BarChart3,
   ChevronUp,
   LogOut,
   Menu,
@@ -153,6 +154,7 @@ export function WorkspaceLayout() {
   const sessionMatch = location.pathname.match(/\/workspace\/sessions\/(.+)/);
   const selectedSessionId = sessionMatch?.[1] ?? null;
   const isChannelsPage = location.pathname.includes("/channels");
+  const isStatsPage = location.pathname === "/workspace/stats";
 
   const handleLogout = async () => {
     setShowLogoutConfirm(false);
@@ -164,19 +166,26 @@ export function WorkspaceLayout() {
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
 
   const showEmptyState =
-    sessions.length === 0 && !isChannelsPage && !selectedSessionId;
+    sessions.length === 0 &&
+    !isChannelsPage &&
+    !isStatsPage &&
+    !selectedSessionId;
 
   const selectedSession = selectedSessionId
     ? sessions.find((s) => s.id === selectedSessionId)
     : null;
   const mobileTitle = isChannelsPage
     ? "Channels"
-    : selectedSession?.title || "Conversations";
+    : isStatsPage
+      ? "Statistics"
+      : selectedSession?.title || "Conversations";
   const mobileSubtitle = isChannelsPage
     ? "Configure your channels"
-    : selectedSession
-      ? `${selectedSession.channelType ?? "web"} · ${formatTime(selectedSession.lastMessageAt || selectedSession.updatedAt)}`
-      : `${sessions.length} conversation${sessions.length === 1 ? "" : "s"}`;
+    : isStatsPage
+      ? "User growth overview"
+      : selectedSession
+        ? `${selectedSession.channelType ?? "web"} · ${formatTime(selectedSession.lastMessageAt || selectedSession.updatedAt)}`
+        : `${sessions.length} conversation${sessions.length === 1 ? "" : "s"}`;
 
   return (
     <div className="flex h-screen">
@@ -318,9 +327,24 @@ export function WorkspaceLayout() {
             </div>
           ) : null}
 
-          {/* Channel config entry */}
+          {/* Workspace entries */}
           <div className={cn(collapsed ? "px-2" : "px-3", "pb-3")}>
             <div className="border-t border-border pt-2" />
+            <Link
+              to="/workspace/stats"
+              title={collapsed ? "Statistics" : undefined}
+              onClick={() => track("workspace_stats_click")}
+              className={cn(
+                "flex items-center gap-2 w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-1",
+                collapsed ? "justify-center p-2" : "px-3 py-2",
+                isStatsPage
+                  ? "bg-accent/10 text-accent"
+                  : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+              )}
+            >
+              <BarChart3 size={14} />
+              {!collapsed && "Statistics"}
+            </Link>
             <Link
               to="/workspace/channels"
               title={collapsed ? "Channels" : undefined}
@@ -530,6 +554,22 @@ export function WorkspaceLayout() {
 
                 <div className="px-3 pb-3">
                   <div className="border-t border-border pt-2" />
+                  <Link
+                    to="/workspace/stats"
+                    onClick={() => {
+                      track("workspace_stats_click");
+                      setMobileDrawerOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-1 px-3 py-2",
+                      isStatsPage
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+                    )}
+                  >
+                    <BarChart3 size={14} />
+                    Statistics
+                  </Link>
                   <Link
                     to="/workspace/channels"
                     onClick={() => {

@@ -32,6 +32,7 @@ import {
 } from "./routes/session-routes.js";
 import { registerSkillRoutes } from "./routes/skill-routes.js";
 import { registerSlackEvents } from "./routes/slack-events.js";
+import { registerStatsRoutes } from "./routes/stats-routes.js";
 import { registerUserRoutes } from "./routes/user-routes.js";
 import { registerWorkspaceTemplateRoutes } from "./routes/workspace-template-routes.js";
 
@@ -87,6 +88,7 @@ export function createApp() {
   registerFeedbackRoutes(app);
 
   app.use("/api/v1/*", authMiddleware);
+  app.use("/api/stats/*", authMiddleware);
 
   registerUserRoutes(app);
   registerOnboardingRoutes(app);
@@ -97,6 +99,7 @@ export function createApp() {
   registerPoolRoutes(app);
   registerArtifactRoutes(app);
   registerSessionRoutes(app);
+  registerStatsRoutes(app);
 
   app.doc("/openapi.json", {
     openapi: "3.1.0",

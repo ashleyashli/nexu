@@ -8,6 +8,7 @@ import { InvitePage } from "./pages/invite";
 import { OnboardingPage } from "./pages/onboarding";
 import { SessionsPage } from "./pages/sessions";
 import { SlackOAuthCallbackPage } from "./pages/slack-oauth-callback";
+import { StatsPage } from "./pages/stats";
 
 export function App() {
   return (
@@ -23,6 +24,7 @@ export function App() {
             <Route path="/workspace/sessions" element={<SessionsPage />} />
             <Route path="/workspace/sessions/:id" element={<SessionsPage />} />
             <Route path="/workspace/channels" element={<ChannelsPage />} />
+            <Route path="/workspace/stats" element={<StatsPage />} />
             <Route
               path="/workspace/channels/slack/callback"
               element={<SlackOAuthCallbackPage />}
