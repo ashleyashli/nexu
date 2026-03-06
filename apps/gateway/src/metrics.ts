@@ -24,17 +24,20 @@ async function getClient(): Promise<DogStatsDClient | null> {
   }
 }
 
+type LogLevel = "info" | "warn" | "error";
+
 function emitMetric(
   name: string,
   tags: string[],
   logPayload: Record<string, unknown>,
+  level: LogLevel = "info",
 ): void {
   void getClient().then((c) => {
     if (c) {
       c.increment(name, 1, tags);
     }
   });
-  logger.info(logPayload, name);
+  logger[level](logPayload, name);
 }
 
 export function reportOpenclawCrash(context: {
@@ -52,6 +55,7 @@ export function reportOpenclawCrash(context: {
       exitCode: context.exitCode,
       signal: context.signal,
     },
+    "error",
   );
 }
 
@@ -67,6 +71,7 @@ export function reportOpenclawRestart(context: {
       attempt: context.attempt,
       success: context.success,
     },
+    "warn",
   );
 }
 
@@ -78,13 +83,19 @@ export function reportOpenclawRestartLimitExceeded(attempts: number): void {
       event: "openclaw_restart_limit_exceeded",
       attempts,
     },
+    "error",
   );
 }
 
 export function reportOpenclawKillForRestart(): void {
-  emitMetric("gateway.openclaw.kill_for_restart", [], {
-    event: "openclaw_kill_for_restart",
-  });
+  emitMetric(
+    "gateway.openclaw.kill_for_restart",
+    [],
+    {
+      event: "openclaw_kill_for_restart",
+    },
+    "warn",
+  );
 }
 
 export function reportProbeFailure(context: {
@@ -103,6 +114,7 @@ export function reportProbeFailure(context: {
       latencyMs: context.latencyMs,
       exitCode: context.exitCode,
     },
+    "warn",
   );
 }
 
@@ -137,8 +149,13 @@ export function reportStateTransition(context: {
 export function reportHeartbeatFailure(context: {
   errorCode: string;
 }): void {
-  emitMetric("gateway.heartbeat.failure", [`error_code:${context.errorCode}`], {
-    event: "gateway_heartbeat_failure",
-    errorCode: context.errorCode,
-  });
+  emitMetric(
+    "gateway.heartbeat.failure",
+    [`error_code:${context.errorCode}`],
+    {
+      event: "gateway_heartbeat_failure",
+      errorCode: context.errorCode,
+    },
+    "warn",
+  );
 }

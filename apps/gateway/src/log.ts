@@ -10,6 +10,9 @@ const version =
 
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? (env === "production" ? "info" : "debug"),
+  formatters: {
+    level: (label) => ({ level: label }),
+  },
   base: {
     service: "nexu-gateway",
     env,
