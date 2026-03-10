@@ -446,6 +446,8 @@ export async function generatePoolConfig(
   if (Object.keys(feishuAccounts).length > 0) {
     config.channels.feishu = {
       enabled: true,
+      streaming: true,
+      renderMode: "card",
       dmPolicy: "open",
       groupPolicy: "open",
       requireMention: true,

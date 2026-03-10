@@ -541,7 +541,7 @@ class SessionSyncTraceHandler {
 
         for (const chat of allChats) {
           const sessionKey = normalizeStoredSessionKey(
-            `feishu_${ch.accountId}_${chat.chat_id}`,
+            `agent:${ch.botId}:feishu:channel:${chat.chat_id}`,
           );
           const title = chat.name || chat.chat_id;
 
