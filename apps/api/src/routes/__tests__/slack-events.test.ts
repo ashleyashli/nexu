@@ -43,7 +43,7 @@ describe("buildSlackSessionKey", () => {
         isIm: true,
         dmUserId: "U0AHLMC6C8G",
       }),
-    ).toBe("agent:bot-test-1:main:user:u0ahlmc6c8g");
+    ).toBe("agent:bot-test-1:slack:direct:u0ahlmc6c8g");
   });
 
   it("appends thread ids to DM main session keys", () => {

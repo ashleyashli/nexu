@@ -203,9 +203,9 @@ async function findArtifactBySessionPreview(input: {
   return rows[0];
 }
 
-// TODO: Optimize by passing ownerUserId from session upsert instead of a separate query.
+// TODO: Optimize by passing nexuUserId from session upsert instead of a separate query.
 // Acceptable for now — hits an indexed column and artifact creation is less frequent than messages.
-async function resolveArtifactOwnerUserId(input: {
+async function resolveArtifactNexuUserId(input: {
   botId: string;
   sessionKey?: string;
 }): Promise<string | undefined> {
@@ -215,7 +215,7 @@ async function resolveArtifactOwnerUserId(input: {
   }
   const normalized = normalizeSessionKey(sessionKey);
   const [row] = await db
-    .select({ ownerUserId: sessions.ownerUserId })
+    .select({ nexuUserId: sessions.nexuUserId })
     .from(sessions)
     .where(
       and(
@@ -224,7 +224,7 @@ async function resolveArtifactOwnerUserId(input: {
       ),
     )
     .orderBy(desc(sessions.updatedAt));
-  return row?.ownerUserId ?? undefined;
+  return row?.nexuUserId ?? undefined;
 }
 
 // --- Helper ---
@@ -490,7 +490,7 @@ export function registerArtifactInternalRoutes(app: OpenAPIHono<AppBindings>) {
       sessionKey: resolved.sessionKey,
       previewUrl: normalizedPreviewUrl,
     });
-    const resolvedOwnerUserId = await resolveArtifactOwnerUserId({
+    const resolvedNexuUserId = await resolveArtifactNexuUserId({
       botId: input.botId,
       sessionKey: resolved.sessionKey,
     });
@@ -514,8 +514,8 @@ export function registerArtifactInternalRoutes(app: OpenAPIHono<AppBindings>) {
           fileCount: input.fileCount,
           durationMs: input.durationMs,
           metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-          ...(resolvedOwnerUserId !== undefined && {
-            ownerUserId: resolvedOwnerUserId,
+          ...(resolvedNexuUserId !== undefined && {
+            nexuUserId: resolvedNexuUserId,
           }),
           updatedAt: now,
         })
@@ -526,7 +526,7 @@ export function registerArtifactInternalRoutes(app: OpenAPIHono<AppBindings>) {
         botId: input.botId,
         title: input.title,
         sessionKey: resolved.sessionKey,
-        ownerUserId: resolvedOwnerUserId,
+        nexuUserId: resolvedNexuUserId,
         channelType: input.channelType,
         channelId: input.channelId,
         artifactType: input.artifactType,
@@ -622,7 +622,7 @@ export function registerArtifactInternalRoutes(app: OpenAPIHono<AppBindings>) {
 function buildAccessClause(
   table: {
     botId: typeof artifacts.botId;
-    ownerUserId: typeof artifacts.ownerUserId;
+    nexuUserId: typeof artifacts.nexuUserId;
   },
   userId: string,
   botIds: string[],
@@ -631,11 +631,11 @@ function buildAccessClause(
   if (queryBotId) {
     return botIds.includes(queryBotId)
       ? eq(table.botId, queryBotId)
-      : and(eq(table.ownerUserId, userId), eq(table.botId, queryBotId));
+      : and(eq(table.nexuUserId, userId), eq(table.botId, queryBotId));
   }
   return botIds.length > 0
-    ? or(inArray(table.botId, botIds), eq(table.ownerUserId, userId))
-    : eq(table.ownerUserId, userId);
+    ? or(inArray(table.botId, botIds), eq(table.nexuUserId, userId))
+    : eq(table.nexuUserId, userId);
 }
 
 // ============================================================
@@ -820,7 +820,7 @@ export function registerArtifactRoutes(app: OpenAPIHono<AppBindings>) {
       return c.json({ message: "Artifact not found" }, 404);
     }
 
-    if (artifact.ownerUserId === userId) {
+    if (artifact.nexuUserId === userId) {
       return c.json(formatArtifact(artifact), 200);
     }
 
@@ -851,7 +851,7 @@ export function registerArtifactRoutes(app: OpenAPIHono<AppBindings>) {
       return c.json({ message: "Artifact not found" }, 404);
     }
 
-    if (artifact.ownerUserId === userId) {
+    if (artifact.nexuUserId === userId) {
       await db.delete(artifacts).where(eq(artifacts.id, id));
       return c.json({ message: "Artifact deleted" }, 200);
     }

@@ -14,3 +14,9 @@ ALTER INDEX "slack_user_claims_auth_user_idx" RENAME TO "workspace_memberships_a
 ALTER INDEX "slack_claim_keys_id_unique" RENAME TO "claim_tokens_id_unique";
 ALTER INDEX "slack_claim_keys_key_unique" RENAME TO "claim_tokens_token_unique";
 ALTER INDEX "slack_claim_keys_team_user_idx" RENAME TO "claim_tokens_team_user_idx";
+
+-- Rename owner_user_id → nexu_user_id
+ALTER TABLE "sessions" RENAME COLUMN "owner_user_id" TO "nexu_user_id";
+ALTER TABLE "artifacts" RENAME COLUMN "owner_user_id" TO "nexu_user_id";
+ALTER INDEX "sessions_owner_user_id_idx" RENAME TO "sessions_nexu_user_id_idx";
+ALTER INDEX "artifacts_owner_user_id_idx" RENAME TO "artifacts_nexu_user_id_idx";

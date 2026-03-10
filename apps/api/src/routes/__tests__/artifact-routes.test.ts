@@ -62,7 +62,7 @@ async function createTables(pool: pg.Pool) {
       id TEXT NOT NULL UNIQUE,
       bot_id TEXT NOT NULL,
       session_key TEXT,
-      owner_user_id TEXT,
+      nexu_user_id TEXT,
       channel_type TEXT,
       channel_id TEXT,
       title TEXT NOT NULL,
@@ -85,7 +85,7 @@ async function createTables(pool: pg.Pool) {
       id TEXT NOT NULL UNIQUE,
       bot_id TEXT NOT NULL,
       session_key TEXT NOT NULL UNIQUE,
-      owner_user_id TEXT,
+      nexu_user_id TEXT,
       channel_type TEXT,
       channel_id TEXT,
       title TEXT NOT NULL,
@@ -157,7 +157,7 @@ describe("Artifact Internal Routes", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.available).toBe(true);
-      expect(body.sessionKey).toBe("agent:bot-test-1:main:user:u0ahlmc6c8g");
+      expect(body.sessionKey).toBe("agent:bot-test-1:main");
       expect(body.existingArtifactId).toBeNull();
       expect(body.existingSessionKey).toBeNull();
     });
@@ -196,9 +196,7 @@ describe("Artifact Internal Routes", () => {
       const body = await res.json();
       expect(body.available).toBe(true);
       expect(body.existingArtifactId).toBe(firstBody.id);
-      expect(body.existingSessionKey).toBe(
-        "agent:bot-test-1:main:user:u0ahlmc6c8g",
-      );
+      expect(body.existingSessionKey).toBe("agent:bot-test-1:main");
     });
 
     it("returns 409 when previewUrl belongs to another session", async () => {
@@ -360,7 +358,7 @@ describe("Artifact Internal Routes", () => {
 
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.sessionKey).toBe("agent:bot-test-1:main:user:u0ahlmc6c8g");
+      expect(body.sessionKey).toBe("agent:bot-test-1:main");
     });
 
     it("resolves DM thread artifacts from chatId and threadId", async () => {
@@ -381,7 +379,7 @@ describe("Artifact Internal Routes", () => {
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.sessionKey).toBe(
-        "agent:bot-test-1:main:user:u0ahlmc6c8g:thread:1770408518.451689",
+        "agent:bot-test-1:main:thread:1770408518.451689",
       );
     });
 

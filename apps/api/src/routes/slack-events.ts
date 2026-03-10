@@ -33,7 +33,7 @@ export function buildSlackSessionKey(params: {
   const dmUserId = params.dmUserId?.trim().toLowerCase();
   const baseKey = params.isIm
     ? dmUserId
-      ? `agent:${botId}:main:user:${dmUserId}`
+      ? `agent:${botId}:slack:direct:${dmUserId}`
       : `agent:${botId}:main`
     : `agent:${botId}:slack:channel:${channelId}`;
   return threadTs ? `${baseKey}:thread:${threadTs}` : baseKey;
@@ -382,10 +382,10 @@ class SlackEventsTraceHandler {
 
         const eventUserId = typeof event.user === "string" ? event.user : null;
         const ownerSlackUserId = isIm ? (dmUserId ?? eventUserId) : null;
-        let ownerUserId: string | null = null;
+        let nexuUserId: string | null = null;
         if (ownerSlackUserId) {
           const [claim] = await this.lookupClaim(teamId, ownerSlackUserId);
-          ownerUserId = claim?.authUserId ?? null;
+          nexuUserId = claim?.authUserId ?? null;
         }
 
         const sessionKey = buildSlackSessionKey({
@@ -406,7 +406,7 @@ class SlackEventsTraceHandler {
             sessionKey,
             channelType: "slack",
             channelId,
-            ownerUserId,
+            nexuUserId,
             title,
             status: "active",
             messageCount: 1,
@@ -419,7 +419,7 @@ class SlackEventsTraceHandler {
             set: {
               botId: channel.botId,
               title,
-              ownerUserId,
+              nexuUserId,
               messageCount: sql`${sessions.messageCount} + 1`,
               lastMessageAt: now,
               updatedAt: now,

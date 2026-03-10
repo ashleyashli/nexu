@@ -639,7 +639,7 @@ export function registerSessionInternalRoutes(app: OpenAPIHono<AppBindings>) {
 function buildAccessClause(
   table: {
     botId: typeof sessions.botId;
-    ownerUserId: typeof sessions.ownerUserId;
+    nexuUserId: typeof sessions.nexuUserId;
   },
   userId: string,
   botIds: string[],
@@ -648,11 +648,11 @@ function buildAccessClause(
   if (queryBotId) {
     return botIds.includes(queryBotId)
       ? eq(table.botId, queryBotId)
-      : and(eq(table.ownerUserId, userId), eq(table.botId, queryBotId));
+      : and(eq(table.nexuUserId, userId), eq(table.botId, queryBotId));
   }
   return botIds.length > 0
-    ? or(inArray(table.botId, botIds), eq(table.ownerUserId, userId))
-    : eq(table.ownerUserId, userId);
+    ? or(inArray(table.botId, botIds), eq(table.nexuUserId, userId))
+    : eq(table.nexuUserId, userId);
 }
 
 // ============================================================
@@ -776,7 +776,7 @@ export function registerSessionRoutes(app: OpenAPIHono<AppBindings>) {
       return c.json({ message: "Session not found" }, 404);
     }
 
-    if (session.ownerUserId === userId) {
+    if (session.nexuUserId === userId) {
       return c.json(formatSession(session), 200);
     }
 
