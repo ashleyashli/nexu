@@ -35,16 +35,21 @@ function detectPlatform(teamId?: string | null): ClaimPlatform {
 
 const PLATFORM_CONFIG: Record<
   ClaimPlatform,
-  { label: string; returnUrl: string; returnLabel: string }
+  { label: string; returnUrl: (teamId?: string | null) => string; returnLabel: string }
 > = {
   slack: {
     label: "Slack",
-    returnUrl: "https://app.slack.com",
+    returnUrl: () => "https://app.slack.com",
     returnLabel: "Back to Slack",
   },
   feishu: {
     label: "Feishu",
-    returnUrl: "https://www.feishu.cn",
+    returnUrl: (teamId) => {
+      const appId = teamId?.replace("feishu:", "");
+      return appId
+        ? `https://applink.feishu.cn/client/bot/open?appId=${appId}`
+        : "https://www.feishu.cn";
+    },
     returnLabel: "Back to Feishu",
   },
 };
@@ -320,7 +325,7 @@ export function SlackClaimPage() {
           <p className="mt-2 text-sm text-text-muted">{content.desc}</p>
           <div className="mt-6 flex flex-col gap-3">
             <a
-              href={platformCfg.returnUrl}
+              href={platformCfg.returnUrl(resolved?.teamId)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors"
@@ -588,7 +593,7 @@ export function SlackClaimPage() {
 
         <div className="mt-8 flex flex-col gap-3">
           <a
-            href={platformCfg.returnUrl}
+            href={platformCfg.returnUrl(resolved?.teamId)}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() =>
