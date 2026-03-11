@@ -535,6 +535,7 @@ export type PostApiInternalSharedSlackClaimKeyData = {
         teamId: string;
         teamName?: string;
         imUserId: string;
+        botId?: string;
     };
     path?: never;
     query?: never;
@@ -1084,6 +1085,47 @@ export type PostApiV1ChannelsDiscordConnectResponses = {
 
 export type PostApiV1ChannelsDiscordConnectResponse = PostApiV1ChannelsDiscordConnectResponses[keyof PostApiV1ChannelsDiscordConnectResponses];
 
+export type PostApiV1ChannelsFeishuConnectData = {
+    body?: {
+        appId: string;
+        appSecret: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/channels/feishu/connect';
+};
+
+export type PostApiV1ChannelsFeishuConnectErrors = {
+    /**
+     * Invalid credentials or already connected
+     */
+    409: {
+        message: string;
+    };
+};
+
+export type PostApiV1ChannelsFeishuConnectError = PostApiV1ChannelsFeishuConnectErrors[keyof PostApiV1ChannelsFeishuConnectErrors];
+
+export type PostApiV1ChannelsFeishuConnectResponses = {
+    /**
+     * Feishu channel connected
+     */
+    200: {
+        id: string;
+        botId: string;
+        channelType: 'slack' | 'discord' | 'feishu';
+        accountId: string;
+        status: 'pending' | 'connected' | 'disconnected' | 'error';
+        teamName: string;
+        appId?: string;
+        botUserId?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostApiV1ChannelsFeishuConnectResponse = PostApiV1ChannelsFeishuConnectResponses[keyof PostApiV1ChannelsFeishuConnectResponses];
+
 export type GetApiV1ChannelsData = {
     body?: never;
     path?: never;
@@ -1401,6 +1443,8 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
             feishu?: {
                 enabled?: boolean;
                 connectionMode?: 'websocket' | 'webhook';
+                streaming?: boolean;
+                renderMode?: 'auto' | 'raw' | 'card';
                 dmPolicy?: 'pairing' | 'allowlist' | 'open';
                 groupPolicy?: 'open' | 'allowlist' | 'disabled';
                 requireMention?: boolean;
@@ -1427,6 +1471,9 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
             restart?: boolean;
             ownerDisplay?: 'raw' | 'friendly';
         };
+        session?: {
+            dmScope?: 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
+        };
         cron?: {
             enabled?: boolean;
         };
@@ -1446,6 +1493,14 @@ export type GetApiInternalPoolsByPoolIdConfigResponses = {
                 logs?: boolean;
                 flushIntervalMs?: number;
             };
+        };
+        plugins?: {
+            entries?: {
+                [key: string]: {
+                    enabled?: boolean;
+                };
+            };
+            allow?: Array<string>;
         };
     };
 };
@@ -1716,6 +1771,8 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                 feishu?: {
                     enabled?: boolean;
                     connectionMode?: 'websocket' | 'webhook';
+                    streaming?: boolean;
+                    renderMode?: 'auto' | 'raw' | 'card';
                     dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
                     requireMention?: boolean;
@@ -1742,6 +1799,9 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                 restart?: boolean;
                 ownerDisplay?: 'raw' | 'friendly';
             };
+            session?: {
+                dmScope?: 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
+            };
             cron?: {
                 enabled?: boolean;
             };
@@ -1761,6 +1821,14 @@ export type GetApiInternalPoolsByPoolIdConfigLatestResponses = {
                     logs?: boolean;
                     flushIntervalMs?: number;
                 };
+            };
+            plugins?: {
+                entries?: {
+                    [key: string]: {
+                        enabled?: boolean;
+                    };
+                };
+                allow?: Array<string>;
             };
         };
         agentMeta?: {
@@ -1955,6 +2023,8 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                 feishu?: {
                     enabled?: boolean;
                     connectionMode?: 'websocket' | 'webhook';
+                    streaming?: boolean;
+                    renderMode?: 'auto' | 'raw' | 'card';
                     dmPolicy?: 'pairing' | 'allowlist' | 'open';
                     groupPolicy?: 'open' | 'allowlist' | 'disabled';
                     requireMention?: boolean;
@@ -1981,6 +2051,9 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                 restart?: boolean;
                 ownerDisplay?: 'raw' | 'friendly';
             };
+            session?: {
+                dmScope?: 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
+            };
             cron?: {
                 enabled?: boolean;
             };
@@ -2000,6 +2073,14 @@ export type GetApiInternalPoolsByPoolIdConfigVersionsByVersionResponses = {
                     logs?: boolean;
                     flushIntervalMs?: number;
                 };
+            };
+            plugins?: {
+                entries?: {
+                    [key: string]: {
+                        enabled?: boolean;
+                    };
+                };
+                allow?: Array<string>;
             };
         };
         agentMeta?: {

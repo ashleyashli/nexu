@@ -510,69 +510,68 @@ class SlackEventsTraceHandler {
           });
           // Fall through to gateway forwarding without session upsert
         } else {
-
-        db.insert(sessions)
-          .values({
-            id: createId(),
-            botId: channel.botId,
-            sessionKey,
-            channelType: "slack",
-            channelId,
-            nexuUserId,
-            title,
-            status: "active",
-            messageCount: 1,
-            lastMessageAt: now,
-            createdAt: now,
-            updatedAt: now,
-          })
-          .onConflictDoUpdate({
-            target: sessions.sessionKey,
-            set: {
-              botId: channel.botId,
-              title,
-              messageCount: sql`${sessions.messageCount} + 1`,
-              lastMessageAt: now,
-              nexuUserId: nexuUserId ?? sql`${sessions.nexuUserId}`,
-              updatedAt: now,
-            },
-          })
-          .then(() => {
-            logger.info({
-              message: "slack_events_session_upserted",
-              session_key: sessionKey,
-              title,
-            });
-          })
-          .catch((err) => {
-            const unknownError = BaseError.from(err);
-            logger.warn({
-              message: "slack_events_session_upsert_failed",
-              scope: "slack_events_session_upsert",
-              session_key: sessionKey,
-              ...unknownError.toJSON(),
-            });
-          });
-
-        // Track channel participants for session visibility
-        if (!isIm && nexuUserId && senderUserId) {
-          db.insert(sessionParticipants)
+          db.insert(sessions)
             .values({
+              id: createId(),
+              botId: channel.botId,
               sessionKey,
+              channelType: "slack",
+              channelId,
               nexuUserId,
-              imUserId: senderUserId,
-              firstSeenAt: now,
+              title,
+              status: "active",
+              messageCount: 1,
+              lastMessageAt: now,
+              createdAt: now,
+              updatedAt: now,
             })
-            .onConflictDoNothing()
-            .catch((err) => {
-              logger.warn({
-                message: "slack_events_participant_upsert_failed",
+            .onConflictDoUpdate({
+              target: sessions.sessionKey,
+              set: {
+                botId: channel.botId,
+                title,
+                messageCount: sql`${sessions.messageCount} + 1`,
+                lastMessageAt: now,
+                nexuUserId: nexuUserId ?? sql`${sessions.nexuUserId}`,
+                updatedAt: now,
+              },
+            })
+            .then(() => {
+              logger.info({
+                message: "slack_events_session_upserted",
                 session_key: sessionKey,
-                nexu_user_id: nexuUserId,
-                error: String(err),
+                title,
+              });
+            })
+            .catch((err) => {
+              const unknownError = BaseError.from(err);
+              logger.warn({
+                message: "slack_events_session_upsert_failed",
+                scope: "slack_events_session_upsert",
+                session_key: sessionKey,
+                ...unknownError.toJSON(),
               });
             });
-        }
+
+          // Track channel participants for session visibility
+          if (!isIm && nexuUserId && senderUserId) {
+            db.insert(sessionParticipants)
+              .values({
+                sessionKey,
+                nexuUserId,
+                imUserId: senderUserId,
+                firstSeenAt: now,
+              })
+              .onConflictDoNothing()
+              .catch((err) => {
+                logger.warn({
+                  message: "slack_events_participant_upsert_failed",
+                  session_key: sessionKey,
+                  nexu_user_id: nexuUserId,
+                  error: String(err),
+                });
+              });
+          }
         } // end else (skip DM no sender)
       }
 

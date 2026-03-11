@@ -16,15 +16,22 @@ import {
   channelCredentials,
   sessionParticipants,
   sessions,
+  workspaceMemberships,
 } from "../db/schema/index.js";
 import { decrypt } from "../lib/crypto.js";
 import { BaseError, ServiceError } from "../lib/error.js";
+import { buildFeishuClaimCard } from "../lib/feishu-claim-card.js";
+import {
+  getFeishuTenantToken,
+  sendFeishuCardMessage,
+} from "../lib/feishu-webhook.js";
 import { logger } from "../lib/logger.js";
 import { Span } from "../lib/trace-decorator.js";
 import { track } from "../lib/tracking.js";
 import { requireInternalToken } from "../middleware/internal-auth.js";
 
 import type { AppBindings } from "../types.js";
+import { generateClaimToken } from "./claim-routes.js";
 
 const errorResponseSchema = z.object({
   message: z.string(),
@@ -36,6 +43,106 @@ const sessionIdParam = z.object({
 
 function normalizeStoredSessionKey(sessionKey: string): string {
   return sessionKey.trim().toLowerCase();
+}
+
+/**
+ * Fire-and-forget: check if a Feishu session sender is registered.
+ * If not, send a claim card DM so they can create a Nexu account.
+ */
+async function checkFeishuClaim(params: {
+  botId: string;
+  channelId: string;
+  sessionKey: string;
+}): Promise<void> {
+  try {
+    // Find the feishu bot channel for this bot
+    const [feishuChannel] = await db
+      .select()
+      .from(botChannels)
+      .where(
+        and(
+          eq(botChannels.botId, params.botId),
+          eq(botChannels.channelType, "feishu"),
+          eq(botChannels.status, "connected"),
+        ),
+      );
+
+    if (!feishuChannel) return;
+
+    // Get credentials
+    const creds = await db
+      .select({
+        credentialType: channelCredentials.credentialType,
+        encryptedValue: channelCredentials.encryptedValue,
+      })
+      .from(channelCredentials)
+      .where(eq(channelCredentials.botChannelId, feishuChannel.id));
+
+    const credMap = new Map<string, string>();
+    for (const cred of creds) {
+      try {
+        credMap.set(cred.credentialType, decrypt(cred.encryptedValue));
+      } catch {
+        // skip unreadable credentials
+      }
+    }
+
+    const appId = credMap.get("appId");
+    const appSecret = credMap.get("appSecret");
+    if (!appId || !appSecret) return;
+
+    const workspaceKey = `feishu:${appId}`;
+    // Use channelId (chat_id) as the IM user identifier for feishu p2p chats
+    const imUserId = params.channelId;
+
+    // Check if this user is already registered
+    const [membership] = await db
+      .select({ userId: workspaceMemberships.userId })
+      .from(workspaceMemberships)
+      .where(
+        and(
+          eq(workspaceMemberships.workspaceKey, workspaceKey),
+          eq(workspaceMemberships.imUserId, imUserId),
+        ),
+      );
+
+    if (membership) {
+      // Already registered — update session nexuUserId
+      await db
+        .update(sessions)
+        .set({ nexuUserId: membership.userId })
+        .where(eq(sessions.sessionKey, params.sessionKey));
+      return;
+    }
+
+    // Not registered — generate claim token and send card
+    const { claimUrl } = await generateClaimToken({
+      workspaceKey,
+      imUserId,
+      botId: params.botId,
+    });
+
+    const tenantToken = await getFeishuTenantToken(appId, appSecret);
+    if (!tenantToken) return;
+
+    const card = buildFeishuClaimCard(claimUrl);
+    await sendFeishuCardMessage(card, params.channelId, tenantToken);
+
+    logger.info({
+      message: "feishu_claim_card_sent",
+      scope: "session-routes",
+      chat_id: params.channelId,
+      workspace_key: workspaceKey,
+    });
+  } catch (err) {
+    const unknownError = BaseError.from(err);
+    logger.error({
+      message: "feishu_claim_check_failed",
+      scope: "session-routes",
+      channel_id: params.channelId,
+      ...unknownError.toJSON(),
+    });
+  }
 }
 
 // --- Helper ---
@@ -568,6 +675,17 @@ export function registerSessionInternalRoutes(app: OpenAPIHono<AppBindings>) {
       track("session_start", bot.userId, { channel_type: channelType });
     }
     track("task_number", bot.userId, { channel_type: channelType });
+
+    // Fire-and-forget: Feishu claim check for new sessions
+    if (!existing && channelType === "feishu" && created.channelId) {
+      checkFeishuClaim({
+        botId: created.botId,
+        channelId: created.channelId,
+        sessionKey: created.sessionKey,
+      }).catch(() => {
+        // Silently ignore — claim check is best-effort
+      });
+    }
 
     return c.json(formatSession(created), 201);
   });

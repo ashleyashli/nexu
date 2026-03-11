@@ -26,6 +26,29 @@ const CAPABILITY_PILLS = [
   { emoji: "\u2699\uFE0F", label: "Automation" },
 ];
 
+type ClaimPlatform = "slack" | "feishu";
+
+function detectPlatform(teamId?: string | null): ClaimPlatform {
+  if (teamId?.startsWith("feishu:")) return "feishu";
+  return "slack";
+}
+
+const PLATFORM_CONFIG: Record<
+  ClaimPlatform,
+  { label: string; returnUrl: string; returnLabel: string }
+> = {
+  slack: {
+    label: "Slack",
+    returnUrl: "https://app.slack.com",
+    returnLabel: "Back to Slack",
+  },
+  feishu: {
+    label: "Feishu",
+    returnUrl: "https://www.feishu.cn",
+    returnLabel: "Back to Feishu",
+  },
+};
+
 type ClaimPhase =
   | "resolving"
   | "invalid"
@@ -117,8 +140,8 @@ function ExistingWorkspacePanel({
         </div>
         <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
           <p className="text-[13px] text-emerald-400/80 leading-relaxed">
-            Your team has already connected Nexu to Slack — no additional Slack
-            configuration needed. Just sign in to get started.
+            Your team has already connected Nexu — no additional configuration
+            needed. Just sign in to get started.
           </p>
         </div>
       </div>
@@ -171,6 +194,8 @@ export function SlackClaimPage() {
   });
 
   const resolved = resolveQuery.data;
+  const platform = detectPlatform(resolved?.teamId);
+  const platformCfg = PLATFORM_CONFIG[platform];
 
   // Claim mutation
   const claimMutation = useMutation({
@@ -273,11 +298,11 @@ export function SlackClaimPage() {
     const content = {
       invalid: {
         title: "Invalid claim link",
-        desc: "This link is not valid. Please check your Slack message for the correct link.",
+        desc: `This link is not valid. Please check your ${platformCfg.label} message for the correct link.`,
       },
       expired: {
         title: "Link expired",
-        desc: "This claim link has expired. Send a message to the Nexu bot in Slack to get a new one.",
+        desc: `This claim link has expired. Send a message to the Nexu bot in ${platformCfg.label} to get a new one.`,
       },
       used: {
         title: "Link already used",
@@ -295,12 +320,12 @@ export function SlackClaimPage() {
           <p className="mt-2 text-sm text-text-muted">{content.desc}</p>
           <div className="mt-6 flex flex-col gap-3">
             <a
-              href="https://app.slack.com"
+              href={platformCfg.returnUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors"
             >
-              Open Slack
+              Open {platformCfg.label}
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
             <Link
@@ -357,8 +382,8 @@ export function SlackClaimPage() {
                 </h1>
                 <p className="text-[14px] text-text-muted">
                   {isExisting
-                    ? "Sign in to connect your Slack identity and start using Nexu with your team."
-                    : "Create an account to claim your Slack access and unlock AI-powered workflows."}
+                    ? `Sign in to connect your ${platformCfg.label} identity and start using Nexu with your team.`
+                    : `Create an account to claim your ${platformCfg.label} access and unlock AI-powered workflows.`}
                 </p>
               </div>
 
@@ -369,7 +394,7 @@ export function SlackClaimPage() {
                     <span className="text-[12px] text-emerald-600 dark:text-emerald-400">
                       {resolved?.memberCount ?? 0} teammate
                       {(resolved?.memberCount ?? 0) !== 1 ? "s" : ""} already
-                      using Nexu — no Slack configuration needed
+                      using Nexu — no additional configuration needed
                     </span>
                   </div>
                 </div>
@@ -463,12 +488,12 @@ export function SlackClaimPage() {
               <h1 className="text-[22px] font-bold text-text-primary mb-1.5">
                 {isExisting
                   ? "Join your team on Nexu"
-                  : "Claim your Slack access"}
+                  : `Claim your ${platformCfg.label} access`}
               </h1>
               <p className="text-[14px] text-text-muted mb-6">
                 {isExisting
-                  ? `Connect your Slack identity to your Nexu account and join ${resolved?.teamName ?? "your team"}.`
-                  : "Link your Slack identity to your Nexu account to unlock AI-powered workflows."}
+                  ? `Connect your ${platformCfg.label} identity to your Nexu account and join ${resolved?.teamName ?? "your team"}.`
+                  : `Link your ${platformCfg.label} identity to your Nexu account to unlock AI-powered workflows.`}
               </p>
 
               <p className="text-[13px] text-text-muted mb-6">
@@ -483,7 +508,7 @@ export function SlackClaimPage() {
                 onClick={handleConfirmClaim}
                 className="w-full flex items-center justify-center gap-2.5 py-3 rounded-lg text-[14px] font-medium bg-accent text-accent-fg hover:bg-accent-hover transition-all"
               >
-                Claim your Slack access
+                Claim your {platformCfg.label} access
               </button>
 
               <div className="text-center mt-4">
@@ -533,10 +558,10 @@ export function SlackClaimPage() {
         <div className="w-full max-w-md rounded-xl border border-border bg-surface-1 p-8 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-text-muted" />
           <h1 className="mt-4 text-lg font-semibold text-text-primary">
-            Claiming your Slack access...
+            Claiming your {platformCfg.label} access...
           </h1>
           <p className="mt-2 text-sm text-text-muted">
-            Linking your Slack identity to your Nexu account.
+            Linking your {platformCfg.label} identity to your Nexu account.
           </p>
         </div>
       </div>
@@ -552,7 +577,7 @@ export function SlackClaimPage() {
         </div>
         <h1 className="text-xl font-bold text-text-primary">You're all set!</h1>
         <p className="mt-2 text-sm text-text-muted">
-          Your Slack account has been linked to Nexu.
+          Your {platformCfg.label} account has been linked to Nexu.
           {resolved?.teamName && (
             <>
               {" "}
@@ -563,15 +588,18 @@ export function SlackClaimPage() {
 
         <div className="mt-8 flex flex-col gap-3">
           <a
-            href="https://app.slack.com"
+            href={platformCfg.returnUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() =>
-              track("claim_back_to_slack_clicked", { source: "IM" })
+              track("claim_back_to_platform_clicked", {
+                source: "IM",
+                platform,
+              })
             }
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-accent-fg hover:bg-accent-hover transition-colors"
           >
-            Back to Slack
+            {platformCfg.returnLabel}
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
           <Link

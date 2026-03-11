@@ -16,7 +16,7 @@ function DocumentTitleSync() {
   useEffect(() => {
     const titleByPathname: Record<string, string> = {
       "/auth": "Sign In · Nexu",
-      "/claim": "Slack Claim · Nexu",
+      "/claim": "Claim · Nexu",
       "/onboarding": "Get Started · Nexu",
       "/workspace": "Workspace · Nexu",
     };

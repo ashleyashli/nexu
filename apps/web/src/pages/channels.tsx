@@ -1,4 +1,5 @@
 import { DiscordSetupView } from "@/components/channel-setup/discord-setup-view";
+import { FeishuSetupView } from "@/components/channel-setup/feishu-setup-view";
 import { SlackOAuthView } from "@/components/channel-setup/slack-oauth-view";
 import { useBotQuota } from "@/hooks/use-bot-quota";
 import { useCountdown } from "@/hooks/use-countdown";
@@ -28,16 +29,18 @@ import {
   getApiV1Channels,
 } from "../../lib/api/sdk.gen";
 
-type Platform = "slack" | "discord";
+type Platform = "slack" | "discord" | "feishu";
 
 const PLATFORMS: { id: Platform; emoji: string; desc: string }[] = [
   { id: "slack", emoji: "#", desc: "Workspace Bot" },
   { id: "discord", emoji: "\u{1F3AE}", desc: "Server Bot" },
+  { id: "feishu", emoji: "\u{1F426}", desc: "Feishu Bot" },
 ];
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   slack: "Slack",
   discord: "Discord",
+  feishu: "Feishu",
 };
 
 // ─── Main page ───────────────────────────────────────────────
@@ -170,8 +173,13 @@ export function ChannelsPage() {
             oauthError={slackError}
             disabled={quotaLimited}
           />
-        ) : (
+        ) : platform === "discord" ? (
           <DiscordSetupView
+            onConnected={handleConnected}
+            disabled={quotaLimited}
+          />
+        ) : (
+          <FeishuSetupView
             onConnected={handleConnected}
             disabled={quotaLimited}
           />

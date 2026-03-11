@@ -16,12 +16,12 @@ process.env.DATABASE_URL =
   process.env.TEST_DATABASE_URL ??
   "postgresql://nexu:nexu@localhost:5433/nexu_test";
 
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { createId } from "@paralleldrive/cuid2";
 import { eq, sql } from "drizzle-orm";
-import { OpenAPIHono } from "@hono/zod-openapi";
 import { Hono } from "hono";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { db, pool as appPool } from "../../db/index.js";
+import { pool as appPool, db } from "../../db/index.js";
 import * as schema from "../../db/schema/index.js";
 import { buildSlackSessionKey } from "../slack-events.js";
 
@@ -128,7 +128,9 @@ describe("Claim Flow E2E", () => {
 
   describe("generateClaimToken", () => {
     // Import dynamically so DATABASE_URL is set first
-    let generateClaimToken: typeof import("../claim-routes.js").generateClaimToken;
+    let generateClaimToken: typeof import(
+      "../claim-routes.js",
+    ).generateClaimToken;
 
     beforeAll(async () => {
       const mod = await import("../claim-routes.js");
@@ -202,9 +204,7 @@ describe("Claim Flow E2E", () => {
     let app: Hono;
 
     beforeAll(async () => {
-      const { registerClaimPublicRoutes } = await import(
-        "../claim-routes.js"
-      );
+      const { registerClaimPublicRoutes } = await import("../claim-routes.js");
       app = new Hono();
       registerClaimPublicRoutes(app as any);
     });
@@ -462,9 +462,7 @@ describe("Claim Flow E2E", () => {
       const [membership] = await db
         .select({ userId: schema.workspaceMemberships.userId })
         .from(schema.workspaceMemberships)
-        .where(
-          eq(schema.workspaceMemberships.workspaceKey, "slack:T_ACME"),
-        );
+        .where(eq(schema.workspaceMemberships.workspaceKey, "slack:T_ACME"));
 
       const nexuUserId = membership?.userId ?? null;
 
@@ -716,9 +714,7 @@ describe("Claim Flow E2E", () => {
       const [membership] = await db
         .select()
         .from(schema.workspaceMemberships)
-        .where(
-          eq(schema.workspaceMemberships.workspaceKey, "slack:T_CLAIM"),
-        );
+        .where(eq(schema.workspaceMemberships.workspaceKey, "slack:T_CLAIM"));
       expect(membership).toBeDefined();
       expect(membership!.userId).toBe("auth-user-001");
       expect(membership!.imUserId).toBe("U_CLAIMER");
@@ -736,7 +732,9 @@ describe("Claim Flow E2E", () => {
   // ── Full lifecycle: unclaimed → claim → session with nexuUserId ─────
 
   describe("Full claim lifecycle", () => {
-    let generateClaimToken: typeof import("../claim-routes.js").generateClaimToken;
+    let generateClaimToken: typeof import(
+      "../claim-routes.js",
+    ).generateClaimToken;
     let claimApp: Hono;
 
     beforeAll(async () => {
@@ -791,9 +789,7 @@ describe("Claim Flow E2E", () => {
       const [membership] = await db
         .select({ userId: schema.workspaceMemberships.userId })
         .from(schema.workspaceMemberships)
-        .where(
-          eq(schema.workspaceMemberships.workspaceKey, "slack:T_E2E"),
-        );
+        .where(eq(schema.workspaceMemberships.workspaceKey, "slack:T_E2E"));
 
       const nexuUserId = membership?.userId ?? null;
       expect(nexuUserId).toBe("nexu-user-lifecycle");

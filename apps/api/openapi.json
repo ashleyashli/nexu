@@ -1424,6 +1424,9 @@
                   "imUserId": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "botId": {
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -1594,7 +1597,13 @@
                 "properties": {
                   "source": {
                     "type": "string",
-                    "enum": ["email", "google", "slack_shared_claim", "IM", "Landing"]
+                    "enum": [
+                      "email",
+                      "google",
+                      "slack_shared_claim",
+                      "IM",
+                      "Landing"
+                    ]
                   },
                   "detail": {
                     "type": "string"
@@ -2758,6 +2767,122 @@
         }
       }
     },
+    "/api/v1/channels/feishu/connect": {
+      "post": {
+        "tags": [
+          "Channels"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "appId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "appSecret": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "appId",
+                  "appSecret"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feishu channel connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "botId": {
+                      "type": "string"
+                    },
+                    "channelType": {
+                      "type": "string",
+                      "enum": [
+                        "slack",
+                        "discord",
+                        "feishu"
+                      ]
+                    },
+                    "accountId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "connected",
+                        "disconnected",
+                        "error"
+                      ]
+                    },
+                    "teamName": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "appId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "botUserId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "botId",
+                    "channelType",
+                    "accountId",
+                    "status",
+                    "teamName",
+                    "createdAt",
+                    "updatedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid credentials or already connected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/channels": {
       "get": {
         "tags": [
@@ -3731,6 +3856,17 @@
                                 "webhook"
                               ]
                             },
+                            "streaming": {
+                              "type": "boolean"
+                            },
+                            "renderMode": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "raw",
+                                "card"
+                              ]
+                            },
                             "dmPolicy": {
                               "type": "string",
                               "enum": [
@@ -3843,6 +3979,20 @@
                         }
                       }
                     },
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "dmScope": {
+                          "type": "string",
+                          "enum": [
+                            "main",
+                            "per-peer",
+                            "per-channel-peer",
+                            "per-account-channel-peer"
+                          ]
+                        }
+                      }
+                    },
                     "cron": {
                       "type": "object",
                       "properties": {
@@ -3903,6 +4053,28 @@
                             "flushIntervalMs": {
                               "type": "number"
                             }
+                          }
+                        }
+                      }
+                    },
+                    "plugins": {
+                      "type": "object",
+                      "properties": {
+                        "entries": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "enabled": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "allow": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
                           }
                         }
                       }
@@ -4829,6 +5001,17 @@
                                     "webhook"
                                   ]
                                 },
+                                "streaming": {
+                                  "type": "boolean"
+                                },
+                                "renderMode": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "raw",
+                                    "card"
+                                  ]
+                                },
                                 "dmPolicy": {
                                   "type": "string",
                                   "enum": [
@@ -4941,6 +5124,20 @@
                             }
                           }
                         },
+                        "session": {
+                          "type": "object",
+                          "properties": {
+                            "dmScope": {
+                              "type": "string",
+                              "enum": [
+                                "main",
+                                "per-peer",
+                                "per-channel-peer",
+                                "per-account-channel-peer"
+                              ]
+                            }
+                          }
+                        },
                         "cron": {
                           "type": "object",
                           "properties": {
@@ -5001,6 +5198,28 @@
                                 "flushIntervalMs": {
                                   "type": "number"
                                 }
+                              }
+                            }
+                          }
+                        },
+                        "plugins": {
+                          "type": "object",
+                          "properties": {
+                            "entries": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "allow": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
                               }
                             }
                           }
@@ -5724,6 +5943,17 @@
                                     "webhook"
                                   ]
                                 },
+                                "streaming": {
+                                  "type": "boolean"
+                                },
+                                "renderMode": {
+                                  "type": "string",
+                                  "enum": [
+                                    "auto",
+                                    "raw",
+                                    "card"
+                                  ]
+                                },
                                 "dmPolicy": {
                                   "type": "string",
                                   "enum": [
@@ -5836,6 +6066,20 @@
                             }
                           }
                         },
+                        "session": {
+                          "type": "object",
+                          "properties": {
+                            "dmScope": {
+                              "type": "string",
+                              "enum": [
+                                "main",
+                                "per-peer",
+                                "per-channel-peer",
+                                "per-account-channel-peer"
+                              ]
+                            }
+                          }
+                        },
                         "cron": {
                           "type": "object",
                           "properties": {
@@ -5896,6 +6140,28 @@
                                 "flushIntervalMs": {
                                   "type": "number"
                                 }
+                              }
+                            }
+                          }
+                        },
+                        "plugins": {
+                          "type": "object",
+                          "properties": {
+                            "entries": {
+                              "type": "object",
+                              "additionalProperties": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "allow": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
                               }
                             }
                           }
