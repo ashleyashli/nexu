@@ -328,6 +328,10 @@ export async function generatePoolConfig(
                     NODE_PATH: "/usr/local/lib/node_modules",
                   },
                 },
+                browser: {
+                  enabled: true,
+                  allowHostControl: true,
+                },
                 prune: {
                   idleHours: 4,
                   maxAgeDays: 3,
