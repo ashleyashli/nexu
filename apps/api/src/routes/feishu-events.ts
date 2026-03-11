@@ -270,6 +270,7 @@ class FeishuEventsTraceHandler {
       }
 
       const message = event.message as Record<string, unknown> | undefined;
+      const messageId = message?.message_id as string | undefined;
       const chatId = message?.chat_id as string | undefined;
       const chatType = message?.chat_type as string | undefined;
 
@@ -345,12 +346,13 @@ class FeishuEventsTraceHandler {
               );
               if (tenantToken) {
                 const card = buildFeishuClaimCard(claimResult.claimUrl);
-                // Send via open_id for private DM
+                // Reply to the original message so Feishu shows native quote
                 await sendFeishuCardMessage(
                   card,
                   senderOpenId,
                   tenantToken,
                   "open_id",
+                  messageId,
                 );
                 logger.info({
                   message: "feishu_claim_card_sent",

@@ -1,6 +1,6 @@
 /**
  * Build a Feishu interactive card for claim/registration flow.
- * Sent as a DM to unregistered users who message the bot.
+ * Sent as a reply to unregistered users who message the bot.
  */
 export function buildFeishuClaimCard(claimUrl: string) {
   return {
