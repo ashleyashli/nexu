@@ -12,7 +12,13 @@ Nexu is an OpenClaw multi-tenant platform. Users create AI bots, connect them to
 - `packages/shared` — Shared Zod schemas
 - `deploy/k8s` — Kubernetes manifests
 
+## Project overview
+
+Nexu is an OpenClaw multi-tenant SaaS platform. Users create AI bots via a dashboard and connect them to Slack. The system dynamically generates OpenClaw configuration and hot-loads it into shared Gateway processes. One Gateway process serves 50+ bots across multiple users through OpenClaw's native multi-agent + multi-account + bindings routing.
+
 ## Commands
+
+All commands use pnpm. Target a single app with `pnpm --filter <package>`.
 
 ```bash
 pnpm install                          # Install
@@ -30,6 +36,8 @@ pnpm db:generate                      # Generate Drizzle migration files (recomm
 pnpm --filter @nexu/api db:push       # Drizzle schema push
 pnpm generate-types                   # OpenAPI spec → frontend SDK
 ```
+
+After API route/schema changes: `pnpm generate-types` then `pnpm typecheck`.
 
 ## DB schema change workflow
 
@@ -73,6 +81,15 @@ When changing DB structure, follow this workflow.
 - `pnpm generate-types` — after API route/schema changes
 - `pnpm test` — after logic changes
 
+## Architecture
+
+See `ARCHITECTURE.md` for the full bird's-eye view. Key points:
+
+- Monorepo: `apps/api` (Hono), `apps/web` (React), `packages/shared` (Zod schemas)
+- Type safety: Zod -> OpenAPI -> generated frontend SDK. Never duplicate types.
+- Config generator: `apps/api/src/lib/config-generator.ts` builds OpenClaw config from DB
+- Key data flows: Slack OAuth, Slack event routing, config hot-reload
+
 ## Code style (quick reference)
 
 - Biome: 2-space indent, double quotes, semicolons always
@@ -88,8 +105,8 @@ When changing DB structure, follow this workflow.
 | Topic | Location |
 |-------|----------|
 | Architecture & data flows | `ARCHITECTURE.md` |
-| System design | `docs/design-docs/openclaw-multi-tenant.md` |
-| OpenClaw internals | `docs/design-docs/openclaw-architecture-internals.md` |
+| System design | `docs/designs/openclaw-multi-tenant.md` |
+| OpenClaw internals | `docs/designs/openclaw-architecture-internals.md` |
 | Engineering principles | `docs/design-docs/core-beliefs.md` |
 | Config schema & pitfalls | `docs/references/openclaw-config-schema.md` |
 | API coding patterns | `docs/references/api-patterns.md` |
