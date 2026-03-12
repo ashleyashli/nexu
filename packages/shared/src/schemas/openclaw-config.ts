@@ -163,6 +163,7 @@ const feishuAccountSchema = z
     connectionMode: z.enum(["websocket", "webhook"]).optional(),
     webhookPath: z.string().optional(),
     webhookPort: z.number().optional(),
+    webhookHost: z.string().optional(),
     verificationToken: z.string().optional(),
   })
   .passthrough();
