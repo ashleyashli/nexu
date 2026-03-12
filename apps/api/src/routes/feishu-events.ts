@@ -15,7 +15,11 @@ import {
 } from "../db/schema/index.js";
 import { decrypt } from "../lib/crypto.js";
 import { BaseError } from "../lib/error.js";
-import { buildFeishuClaimCard } from "../lib/feishu-claim-card.js";
+import {
+  buildFeishuClaimCard,
+  buildFeishuClaimCardDone,
+  buildFeishuClaimCardWithUrl,
+} from "../lib/feishu-claim-card.js";
 import {
   getFeishuTenantToken,
   sendFeishuCardMessage,
@@ -312,12 +316,6 @@ class FeishuEventsTraceHandler {
           // Deduplicate claim card sending (DB-level, works across API pods)
           const dedupKey = eventId ?? `${appId}:${senderOpenId}:${Date.now()}`;
           if (await tryAcquireClaimLock(dedupKey)) {
-            const claimResult = await generateClaimToken({
-              workspaceKey,
-              imUserId: senderOpenId,
-              botId: route.botId,
-            });
-
             // Get credentials for sending
             const creds = await db
               .select({
@@ -345,19 +343,39 @@ class FeishuEventsTraceHandler {
                 feishuAppSecret,
               );
               if (tenantToken) {
-                const card = buildFeishuClaimCard(claimResult.claimUrl);
-                // Reply to the original message so Feishu shows native quote
-                await sendFeishuCardMessage(
-                  card,
-                  senderOpenId,
-                  tenantToken,
-                  "open_id",
-                  messageId,
+                // Action button card — no claim token yet; token is generated
+                // when the user clicks the button (card action callback).
+                const card = buildFeishuClaimCard(
+                  workspaceKey,
+                  route.botId,
+                  appId,
                 );
+
+                if (chatType === "p2p") {
+                  // DM: send to sender's open_id, quote original message
+                  await sendFeishuCardMessage(
+                    card,
+                    senderOpenId,
+                    tenantToken,
+                    "open_id",
+                    messageId,
+                  );
+                } else if (chatId) {
+                  // Group: reply in the group chat, quoting original message
+                  await sendFeishuCardMessage(
+                    card,
+                    chatId,
+                    tenantToken,
+                    "chat_id",
+                    messageId,
+                  );
+                }
+
                 logger.info({
                   message: "feishu_claim_card_sent",
                   scope: "feishu-events",
                   open_id: senderOpenId,
+                  chat_type: chatType,
                   workspace_key: workspaceKey,
                 });
               }
@@ -495,10 +513,89 @@ class FeishuEventsTraceHandler {
   }
 }
 
+// ── Card action callback handler ─────────────────────────────────────────
+// When a user clicks the claim card's action button, Feishu POSTs here.
+// We generate a claim token for the clicker and return an updated card
+// with a multi_url button pointing to the claim page.
+
+async function handleCardAction(c: Context<AppBindings>): Promise<Response> {
+  try {
+    const payload = (await c.req.json()) as Record<string, unknown>;
+
+    // Extract clicker identity
+    const openId = payload.open_id as string | undefined;
+    const action = payload.action as Record<string, unknown> | undefined;
+    const actionValue = action?.value as Record<string, unknown> | undefined;
+
+    const workspaceKey = actionValue?.workspaceKey as string | undefined;
+    const botId = actionValue?.botId as string | undefined;
+    const appId = actionValue?.appId as string | undefined;
+
+    if (!openId || !workspaceKey || !botId) {
+      logger.warn({
+        message: "feishu_card_action_missing_fields",
+        open_id: openId,
+        workspace_key: workspaceKey,
+      });
+      return c.json({});
+    }
+
+    logger.info({
+      message: "feishu_card_action_received",
+      open_id: openId,
+      workspace_key: workspaceKey,
+      app_id: appId,
+    });
+
+    // Check if the clicker is already registered
+    const [membership] = await db
+      .select({ userId: workspaceMemberships.userId })
+      .from(workspaceMemberships)
+      .where(
+        and(
+          eq(workspaceMemberships.workspaceKey, workspaceKey),
+          eq(workspaceMemberships.imUserId, openId),
+        ),
+      );
+
+    if (membership) {
+      // Already registered — return "done" card
+      return c.json({ card: buildFeishuClaimCardDone() });
+    }
+
+    // Generate claim token for this specific clicker
+    const { claimUrl } = await generateClaimToken({
+      workspaceKey,
+      imUserId: openId,
+      botId,
+    });
+
+    logger.info({
+      message: "feishu_card_action_claim_token_generated",
+      open_id: openId,
+      workspace_key: workspaceKey,
+    });
+
+    // Return updated card with multi_url button
+    return c.json({ card: buildFeishuClaimCardWithUrl(claimUrl) });
+  } catch (err) {
+    const unknownError = BaseError.from(err);
+    logger.warn({
+      message: "feishu_card_action_error",
+      scope: "feishu_card_action",
+      ...unknownError.toJSON(),
+    });
+    return c.json({});
+  }
+}
+
 export function registerFeishuEvents(app: OpenAPIHono<AppBindings>) {
   const traceHandler = new FeishuEventsTraceHandler();
 
   app.on("POST", "/api/feishu/events", async (c) => {
     return traceHandler.handle(c);
   });
+
+  // Feishu card action callback — configured as "消息卡片请求网址" in Feishu console
+  app.on("POST", "/api/feishu/card-action", handleCardAction);
 }

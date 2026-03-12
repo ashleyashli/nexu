@@ -142,10 +142,13 @@ export async function generatePoolConfig(
     // Per-agent /tmp bind so the sandbox fs-bridge recognises /tmp as
     // a writable mount.  Without this, the Write tool rejects /tmp paths
     // because tmpfs mounts are invisible to the path-safety guard.
+    // Override tmpfs to exclude /tmp — Docker rejects duplicate mount points
+    // when both a bind mount and tmpfs target the same path.
     if (process.env.SANDBOX_ENABLED === "true") {
       (agent as Record<string, unknown>).sandbox = {
         docker: {
           binds: [`${stateDir}/agents/${bot.id}/.tmp:/tmp:rw`],
+          tmpfs: ["/var/tmp", "/run"],
         },
       };
     }

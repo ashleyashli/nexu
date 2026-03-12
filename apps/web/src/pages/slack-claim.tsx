@@ -35,7 +35,11 @@ function detectPlatform(teamId?: string | null): ClaimPlatform {
 
 const PLATFORM_CONFIG: Record<
   ClaimPlatform,
-  { label: string; returnUrl: (teamId?: string | null) => string; returnLabel: string }
+  {
+    label: string;
+    returnUrl: (teamId?: string | null) => string;
+    returnLabel: string;
+  }
 > = {
   slack: {
     label: "Slack",

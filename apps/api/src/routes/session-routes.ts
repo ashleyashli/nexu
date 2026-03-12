@@ -31,7 +31,6 @@ import { track } from "../lib/tracking.js";
 import { requireInternalToken } from "../middleware/internal-auth.js";
 
 import type { AppBindings } from "../types.js";
-import { generateClaimToken } from "./claim-routes.js";
 
 const errorResponseSchema = z.object({
   message: z.string(),
@@ -115,17 +114,11 @@ async function checkFeishuClaim(params: {
       return;
     }
 
-    // Not registered — generate claim token and send card
-    const { claimUrl } = await generateClaimToken({
-      workspaceKey,
-      imUserId,
-      botId: params.botId,
-    });
-
+    // Not registered — send action-button claim card (token generated on click)
     const tenantToken = await getFeishuTenantToken(appId, appSecret);
     if (!tenantToken) return;
 
-    const card = buildFeishuClaimCard(claimUrl);
+    const card = buildFeishuClaimCard(workspaceKey, params.botId, appId);
     await sendFeishuCardMessage(card, params.channelId, tenantToken);
 
     logger.info({
