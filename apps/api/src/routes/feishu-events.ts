@@ -522,6 +522,18 @@ async function handleCardAction(c: Context<AppBindings>): Promise<Response> {
   try {
     const payload = (await c.req.json()) as Record<string, unknown>;
 
+    logger.info({
+      message: "feishu_card_action_raw_payload",
+      payload_keys: Object.keys(payload),
+      has_open_id: "open_id" in payload,
+      has_action: "action" in payload,
+    });
+
+    // Handle url_verification challenge (sent when configuring the callback URL)
+    if (payload.type === "url_verification") {
+      return c.json({ challenge: payload.challenge });
+    }
+
     // Extract clicker identity
     const openId = payload.open_id as string | undefined;
     const action = payload.action as Record<string, unknown> | undefined;
@@ -559,8 +571,8 @@ async function handleCardAction(c: Context<AppBindings>): Promise<Response> {
       );
 
     if (membership) {
-      // Already registered — return "done" card
-      return c.json({ card: buildFeishuClaimCardDone() });
+      // Already registered — return updated card directly (no "card" wrapper)
+      return c.json(buildFeishuClaimCardDone());
     }
 
     // Generate claim token for this specific clicker
@@ -576,8 +588,9 @@ async function handleCardAction(c: Context<AppBindings>): Promise<Response> {
       workspace_key: workspaceKey,
     });
 
-    // Return updated card with multi_url button
-    return c.json({ card: buildFeishuClaimCardWithUrl(claimUrl) });
+    // Return updated card directly (no "card" wrapper — Feishu expects
+    // the card content at the top level in callback responses)
+    return c.json(buildFeishuClaimCardWithUrl(claimUrl));
   } catch (err) {
     const unknownError = BaseError.from(err);
     logger.warn({
