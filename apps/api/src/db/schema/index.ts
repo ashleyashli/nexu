@@ -560,6 +560,7 @@ export const e2eTestMigration = pgTable("e2e_test_migration", {
   probe: text("probe"),
   test1: text("test1"),
   test2: text("test2"),
+  test3: text("test3"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
