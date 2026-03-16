@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmod, mkdir, rename, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, rename, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pruneOpenclawPackage } from "./lib/prune-openclaw-package.mjs";
 import {
@@ -22,6 +22,10 @@ const sidecarNodeModules = resolve(sidecarRoot, "node_modules");
 const packagedOpenclawEntry = resolve(
   sidecarNodeModules,
   "openclaw/openclaw.mjs",
+);
+const inheritEntitlementsPath = resolve(
+  electronRoot,
+  "build/entitlements.mac.inherit.plist",
 );
 
 function run(command, args, options = {}) {
@@ -46,6 +50,125 @@ function run(command, args, options = {}) {
       );
     });
   });
+}
+
+async function runAndCapture(command, args, options = {}) {
+  return new Promise((resolveRun, rejectRun) => {
+    let stdout = "";
+    let stderr = "";
+    const child = spawn(command, args, {
+      cwd: options.cwd ?? electronRoot,
+      env: options.env ?? process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    child.stdout?.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.once("error", rejectRun);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolveRun({ stdout, stderr });
+        return;
+      }
+
+      rejectRun(
+        new Error(
+          `${command} ${args.join(" ")} exited with code ${code ?? "null"}. ${stderr}`,
+        ),
+      );
+    });
+  });
+}
+
+async function collectFiles(rootPath) {
+  const files = [];
+  const entries = await readdir(rootPath, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const entryPath = resolve(rootPath, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...(await collectFiles(entryPath)));
+      continue;
+    }
+
+    if (entry.isFile()) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
+}
+
+async function resolveCodesignIdentity() {
+  const { stdout } = await runAndCapture("security", [
+    "find-identity",
+    "-v",
+    "-p",
+    "codesigning",
+  ]);
+  const identityLine = stdout
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .find((line) => line.includes("Developer ID Application:"));
+
+  if (!identityLine) {
+    throw new Error(
+      "Unable to locate a Developer ID Application signing identity.",
+    );
+  }
+
+  const match = identityLine.match(/"([^"]+)"/u);
+  if (!match) {
+    throw new Error(`Unable to parse signing identity from: ${identityLine}`);
+  }
+
+  return match[1];
+}
+
+async function signOpenclawNativeBinaries() {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const unsignedMode =
+    process.env.NEXU_DESKTOP_MAC_UNSIGNED === "1" ||
+    process.env.NEXU_DESKTOP_MAC_UNSIGNED === "true";
+
+  if (unsignedMode || !shouldCopyRuntimeDependencies()) {
+    return;
+  }
+
+  const identity = await resolveCodesignIdentity();
+  const files = await collectFiles(sidecarRoot);
+
+  for (const filePath of files) {
+    const { stdout } = await runAndCapture("file", ["-b", filePath]);
+    const description = stdout.trim();
+    const isMachO = description.includes("Mach-O");
+
+    if (!isMachO) {
+      continue;
+    }
+
+    const isExecutable =
+      description.includes("executable") || description.includes("bundle");
+    const args = [
+      "--force",
+      "--sign",
+      identity,
+      "--timestamp",
+      "--entitlements",
+      inheritEntitlementsPath,
+      ...(isExecutable ? ["--options", "runtime"] : []),
+      filePath,
+    ];
+    await run("codesign", args);
+  }
 }
 
 async function prepareOpenclawSidecar() {
@@ -117,6 +240,7 @@ exit 127
 `,
   );
   await chmod(wrapperPath, 0o755);
+  await signOpenclawNativeBinaries();
 
   if (shouldCopyRuntimeDependencies()) {
     const archivePath = resolve(
