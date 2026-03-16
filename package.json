@@ -31,7 +31,9 @@
     "desktop:stop": "./apps/desktop/dev.sh stop",
     "desktop:restart": "./apps/desktop/dev.sh restart",
     "desktop:status": "./apps/desktop/dev.sh status",
-    "desktop:logs": "./apps/desktop/dev.sh logs"
+    "desktop:logs": "./apps/desktop/dev.sh logs",
+    "desktop:dist:mac": "pnpm --filter @nexu/desktop dist:mac",
+    "desktop:dist:mac:unsigned": "pnpm --filter @nexu/desktop dist:mac:unsigned"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
