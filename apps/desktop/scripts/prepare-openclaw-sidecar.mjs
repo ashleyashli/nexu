@@ -1,13 +1,16 @@
-import { chmod, mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { chmod, mkdir, rename, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { pruneOpenclawPackage } from "./lib/prune-openclaw-package.mjs";
 import {
+  electronRoot,
   getSidecarRoot,
   linkOrCopyDirectory,
   pathExists,
   removePathIfExists,
   repoRoot,
   resetDir,
+  shouldCopyRuntimeDependencies,
 } from "./lib/sidecar-paths.mjs";
 
 const openclawRuntimeRoot = resolve(repoRoot, "openclaw-runtime");
@@ -20,6 +23,30 @@ const packagedOpenclawEntry = resolve(
   sidecarNodeModules,
   "openclaw/openclaw.mjs",
 );
+
+function run(command, args, options = {}) {
+  return new Promise((resolveRun, rejectRun) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd ?? electronRoot,
+      env: options.env ?? process.env,
+      stdio: "inherit",
+    });
+
+    child.once("error", rejectRun);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolveRun();
+        return;
+      }
+
+      rejectRun(
+        new Error(
+          `${command} ${args.join(" ")} exited with code ${code ?? "null"}.`,
+        ),
+      );
+    });
+  });
+}
 
 async function prepareOpenclawSidecar() {
   if (!(await pathExists(openclawRoot))) {
@@ -90,6 +117,32 @@ exit 127
 `,
   );
   await chmod(wrapperPath, 0o755);
+
+  if (shouldCopyRuntimeDependencies()) {
+    const archivePath = resolve(
+      dirname(sidecarRoot),
+      "openclaw-sidecar.tar.gz",
+    );
+    await removePathIfExists(archivePath);
+    await run("tar", ["-czf", archivePath, "-C", sidecarRoot, "."]);
+    await resetDir(sidecarRoot);
+    await writeFile(
+      resolve(sidecarRoot, "archive.json"),
+      `${JSON.stringify(
+        {
+          format: "tar.gz",
+          path: "payload.tar.gz",
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    await writeFile(
+      resolve(sidecarRoot, "package.json"),
+      '{\n  "name": "openclaw-sidecar",\n  "private": true\n}\n',
+    );
+    await rename(archivePath, resolve(sidecarRoot, "payload.tar.gz"));
+  }
 }
 
 await prepareOpenclawSidecar();
