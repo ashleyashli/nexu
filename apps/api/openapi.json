@@ -1695,6 +1695,132 @@
         }
       }
     },
+    "/api/internal/shared-slack/claim-key": {
+      "post": {
+        "tags": [
+          "Shared Slack App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "teamId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "teamName": {
+                    "type": "string"
+                  },
+                  "imUserId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "botId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "teamId",
+                  "imUserId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Claim token generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "claimUrl": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "claimUrl",
+                    "token",
+                    "expiresAt"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/shared-slack/resolve-claim-key": {
+      "get": {
+        "tags": [
+          "Shared Slack App"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Claim token resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "expired": {
+                      "type": "boolean"
+                    },
+                    "used": {
+                      "type": "boolean"
+                    },
+                    "teamId": {
+                      "type": "string"
+                    },
+                    "teamName": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "imUserId": {
+                      "type": "string"
+                    },
+                    "isExistingWorkspace": {
+                      "type": "boolean"
+                    },
+                    "memberCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "valid",
+                    "expired",
+                    "used"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me": {
       "get": {
         "tags": [
@@ -1729,6 +1855,10 @@
                     },
                     "onboardingCompleted": {
                       "type": "boolean"
+                    },
+                    "authSource": {
+                      "type": "string",
+                      "nullable": true
                     }
                   },
                   "required": [
@@ -1746,10 +1876,10 @@
         }
       }
     },
-    "/api/v1/onboarding/complete": {
+    "/api/v1/me/auth-source": {
       "post": {
         "tags": [
-          "Onboarding"
+          "User"
         ],
         "requestBody": {
           "content": {
@@ -1757,53 +1887,22 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "role": {
+                  "source": {
                     "type": "string",
-                    "minLength": 1
+                    "enum": [
+                      "email",
+                      "google",
+                      "slack_shared_claim",
+                      "IM",
+                      "Landing"
+                    ]
                   },
-                  "company": {
-                    "type": "string",
-                    "default": ""
-                  },
-                  "useCases": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "minItems": 1
-                  },
-                  "referralSource": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "referralDetail": {
-                    "type": "string",
-                    "default": ""
-                  },
-                  "channelVotes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "default": []
-                  },
-                  "selectedAvatar": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "avatarVotes": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "default": []
+                  "detail": {
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "role",
-                  "useCases",
-                  "referralSource",
-                  "selectedAvatar"
+                  "source"
                 ]
               }
             }
@@ -1811,7 +1910,7 @@
         },
         "responses": {
           "200": {
-            "description": "Onboarding completed",
+            "description": "Auth source updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -2893,6 +2992,16 @@
                   "appSecret": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "connectionMode": {
+                    "type": "string",
+                    "enum": [
+                      "websocket",
+                      "webhook"
+                    ]
+                  },
+                  "verificationToken": {
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -4030,6 +4139,22 @@
                                     "type": "string"
                                   },
                                   "appSecret": {
+                                    "type": "string"
+                                  },
+                                  "connectionMode": {
+                                    "type": "string",
+                                    "enum": [
+                                      "websocket",
+                                      "webhook"
+                                    ]
+                                  },
+                                  "webhookPath": {
+                                    "type": "string"
+                                  },
+                                  "webhookPort": {
+                                    "type": "number"
+                                  },
+                                  "verificationToken": {
                                     "type": "string"
                                   }
                                 },
@@ -5193,6 +5318,22 @@
                                       },
                                       "appSecret": {
                                         "type": "string"
+                                      },
+                                      "connectionMode": {
+                                        "type": "string",
+                                        "enum": [
+                                          "websocket",
+                                          "webhook"
+                                        ]
+                                      },
+                                      "webhookPath": {
+                                        "type": "string"
+                                      },
+                                      "webhookPort": {
+                                        "type": "number"
+                                      },
+                                      "verificationToken": {
+                                        "type": "string"
                                       }
                                     },
                                     "required": [
@@ -6152,6 +6293,22 @@
                                       },
                                       "appSecret": {
                                         "type": "string"
+                                      },
+                                      "connectionMode": {
+                                        "type": "string",
+                                        "enum": [
+                                          "websocket",
+                                          "webhook"
+                                        ]
+                                      },
+                                      "webhookPath": {
+                                        "type": "string"
+                                      },
+                                      "webhookPort": {
+                                        "type": "number"
+                                      },
+                                      "verificationToken": {
+                                        "type": "string"
                                       }
                                     },
                                     "required": [
@@ -6528,6 +6685,55 @@
                   },
                   "required": [
                     "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shared-slack/claim": {
+      "post": {
+        "tags": [
+          "Shared Slack App"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Shared Slack user identity claimed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "orgAuthorized": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "orgAuthorized"
                   ]
                 }
               }
@@ -7203,6 +7409,89 @@
           },
           "404": {
             "description": "Session not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feishu/bind/oauth-url": {
+      "get": {
+        "tags": [
+          "Feishu"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "workspaceKey",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "botId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feishu OAuth authorization URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid workspace key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feishu app not found",
             "content": {
               "application/json": {
                 "schema": {
