@@ -94,6 +94,23 @@ function run(command, args, options = {}) {
   });
 }
 
+function shellEscape(value) {
+  return `'${String(value).replace(/'/gu, `'"'"'`)}'`;
+}
+
+async function runElectronBuilder(args, options = {}) {
+  const targetOpenFiles = process.env.NEXU_DESKTOP_MAX_OPEN_FILES ?? "8192";
+  const command = [
+    `target=${shellEscape(targetOpenFiles)}`,
+    'hard_limit=$(ulimit -Hn 2>/dev/null || printf %s "$target")',
+    'if [ "$hard_limit" != "unlimited" ] && [ "$hard_limit" -lt "$target" ]; then target="$hard_limit"; fi',
+    'ulimit -n "$target" 2>/dev/null || true',
+    `exec pnpm exec electron-builder ${args.map(shellEscape).join(" ")}`,
+  ].join("; ");
+
+  await run("bash", ["-lc", command], options);
+}
+
 async function ensureDmgbuildBundle() {
   if (process.env.CUSTOM_DMGBUILD_PATH) {
     return process.env.CUSTOM_DMGBUILD_PATH;
@@ -207,11 +224,8 @@ async function main() {
     },
   );
   env.CUSTOM_DMGBUILD_PATH = await ensureDmgbuildBundle();
-  await run(
-    "pnpm",
+  await runElectronBuilder(
     [
-      "exec",
-      "electron-builder",
       "--mac",
       "--publish",
       "never",
