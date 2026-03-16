@@ -12,7 +12,7 @@ import {
   Sparkles,
   Unlink,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import "@/lib/api";
@@ -295,17 +295,20 @@ export function HomePage() {
 
   const modelName = formatModelName(botsData?.bots?.[0]?.modelId);
   const sessions = sessionsData?.sessions ?? [];
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const messagesToday = sessions.reduce((sum, s) => {
-    const active = s.lastMessageAt && new Date(s.lastMessageAt) >= todayStart;
-    return sum + (active ? s.messageCount : 0);
-  }, 0);
-  const lastActiveAt = sessions.reduce<string | null>((latest, s) => {
-    if (!s.lastMessageAt) return latest;
-    if (!latest) return s.lastMessageAt;
-    return s.lastMessageAt > latest ? s.lastMessageAt : latest;
-  }, null);
+  const { messagesToday, lastActiveAt } = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const msgCount = sessions.reduce((sum, s) => {
+      const active = s.lastMessageAt && new Date(s.lastMessageAt) >= start;
+      return sum + (active ? s.messageCount : 0);
+    }, 0);
+    const lastActive = sessions.reduce<string | null>((latest, s) => {
+      if (!s.lastMessageAt) return latest;
+      if (!latest) return s.lastMessageAt;
+      return s.lastMessageAt > latest ? s.lastMessageAt : latest;
+    }, null);
+    return { messagesToday: msgCount, lastActiveAt: lastActive };
+  }, [sessions]);
 
   const channels = channelsData?.channels ?? [];
   const connectedCount = channels.length;

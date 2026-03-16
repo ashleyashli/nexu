@@ -13,7 +13,7 @@ type ChannelType = "feishu" | "slack" | "discord";
 interface ChannelConnectModalProps {
   channelType: ChannelType;
   onClose: () => void;
-  onConnected: () => void;
+  onConnected: () => void | Promise<void>;
 }
 
 const SlackIcon = () => (
@@ -165,23 +165,24 @@ export function ChannelConnectModal({
     setLoading(true);
 
     let error: { message?: string } | undefined;
+    let response: Response | undefined;
 
     if (channelType === "feishu") {
-      ({ error } = await postApiV1ChannelsFeishuConnect({
+      ({ error, response } = await postApiV1ChannelsFeishuConnect({
         body: {
           appId: fieldValues.appId ?? "",
           appSecret: fieldValues.appSecret ?? "",
         },
       }));
     } else if (channelType === "slack") {
-      ({ error } = await postApiV1ChannelsSlackConnect({
+      ({ error, response } = await postApiV1ChannelsSlackConnect({
         body: {
           botToken: fieldValues.botToken ?? "",
           signingSecret: fieldValues.signingSecret ?? "",
         },
       }));
     } else if (channelType === "discord") {
-      ({ error } = await postApiV1ChannelsDiscordConnect({
+      ({ error, response } = await postApiV1ChannelsDiscordConnect({
         body: {
           botToken: fieldValues.botToken ?? "",
           appId: fieldValues.appId ?? "",
@@ -189,14 +190,14 @@ export function ChannelConnectModal({
       }));
     }
 
-    setLoading(false);
-
     if (error) {
-      if (error.message?.toLowerCase().includes("already connected")) {
+      if (response?.status === 409) {
         toast.info("渠道已连接，正在刷新...");
-        onConnected();
+        await onConnected();
+        setLoading(false);
         return;
       }
+      setLoading(false);
       toast.error(error.message ?? "连接失败");
       return;
     }
@@ -204,7 +205,8 @@ export function ChannelConnectModal({
     toast.success(`${config.name} 连接成功`);
     track("channel_ready", { channel: channelType });
     identify({ [`${channelType}_connected`]: true });
-    onConnected();
+    await onConnected();
+    setLoading(false);
   };
 
   return (
@@ -217,7 +219,12 @@ export function ChannelConnectModal({
       />
 
       {/* Modal panel */}
-      <div className="relative w-full max-w-md mx-4 rounded-2xl border border-border bg-surface-0 shadow-2xl">
+      {/* biome-ignore lint/a11y/useSemanticElements: custom modal without native <dialog> open/close */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative w-full max-w-md mx-4 rounded-2xl border border-border bg-surface-0 shadow-2xl"
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
@@ -234,6 +241,7 @@ export function ChannelConnectModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label="关闭"
             className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
           >
             <X size={16} />
