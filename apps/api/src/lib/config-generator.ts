@@ -15,6 +15,7 @@ import {
   channelCredentials,
   gatewayPools,
 } from "../db/schema/index.js";
+import { buildPoolModelProvidersConfig } from "../services/runtime/pool-model-provider-service.js";
 import { decrypt } from "./crypto.js";
 import { ServiceError } from "./error.js";
 
@@ -105,10 +106,15 @@ export async function generatePoolConfig(
     }
   }
 
-  // LiteLLM provider config from env vars
+  const poolModelProviders = await buildPoolModelProvidersConfig(db, poolId);
+
+  // LiteLLM provider config is now sourced from runtime DB state first.
+  // The env fallback is kept for compatibility with older non-desktop flows.
   const litellmBaseUrl = process.env.LITELLM_BASE_URL;
   const litellmApiKey = process.env.LITELLM_API_KEY;
-  const hasLitellm = Boolean(litellmBaseUrl && litellmApiKey);
+  const hasLitellm =
+    poolModelProviders.hasLitellmProvider ||
+    Boolean(litellmBaseUrl && litellmApiKey);
 
   // Prefix model ID with "litellm/" when LiteLLM is configured
   function resolveModelId(rawModelId: string): string {
@@ -257,10 +263,6 @@ export async function generatePoolConfig(
     }
   }
 
-  // Collect unique model IDs across all active bots for LiteLLM provider config
-  const uniqueModelIds = [
-    ...new Set(activeBots.map((b) => b.modelId).filter(Boolean) as string[]),
-  ];
   const defaultModelId = resolveModelId(
     activeBots[0]?.modelId ??
       process.env.DEFAULT_MODEL_ID ??
@@ -399,8 +401,12 @@ export async function generatePoolConfig(
     bindings: bindingsList,
   };
 
-  // Add LiteLLM model provider when configured via env vars
-  if (litellmBaseUrl && litellmApiKey) {
+  if (poolModelProviders.config) {
+    config.models = poolModelProviders.config;
+  } else if (litellmBaseUrl && litellmApiKey) {
+    const uniqueModelIds = [
+      ...new Set(activeBots.map((b) => b.modelId).filter(Boolean) as string[]),
+    ];
     config.models = {
       mode: "merge",
       providers: {

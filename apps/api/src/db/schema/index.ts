@@ -293,6 +293,37 @@ export const poolConfigSnapshots = pgTable(
   ],
 );
 
+export const poolModelProviders = pgTable(
+  "pool_model_providers",
+  {
+    pk: serial("pk").primaryKey(),
+    id: text("id").notNull().unique(),
+    poolId: text("pool_id").notNull(),
+    providerKey: text("provider_key").notNull(),
+    baseUrl: text("base_url").notNull(),
+    apiType: text("api_type").notNull(),
+    encryptedApiKey: text("encrypted_api_key"),
+    modelsJson: text("models_json").notNull().default("[]"),
+    status: text("status").notNull().default("active"),
+    createdAt: text("created_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text("updated_at")
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [
+    uniqueIndex("pool_model_providers_pool_provider_idx").on(
+      table.poolId,
+      table.providerKey,
+    ),
+    index("pool_model_providers_pool_status_idx").on(
+      table.poolId,
+      table.status,
+    ),
+  ],
+);
+
 export const skills = pgTable("skills", {
   pk: serial("pk").primaryKey(),
   id: text("id").notNull().unique(),

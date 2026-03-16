@@ -1128,6 +1128,47 @@ export type PostApiV1ChannelsDiscordConnectResponses = {
 
 export type PostApiV1ChannelsDiscordConnectResponse = PostApiV1ChannelsDiscordConnectResponses[keyof PostApiV1ChannelsDiscordConnectResponses];
 
+export type PostApiV1ChannelsFeishuConnectData = {
+    body?: {
+        appId: string;
+        appSecret: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/channels/feishu/connect';
+};
+
+export type PostApiV1ChannelsFeishuConnectErrors = {
+    /**
+     * Invalid credentials or already connected
+     */
+    409: {
+        message: string;
+    };
+};
+
+export type PostApiV1ChannelsFeishuConnectError = PostApiV1ChannelsFeishuConnectErrors[keyof PostApiV1ChannelsFeishuConnectErrors];
+
+export type PostApiV1ChannelsFeishuConnectResponses = {
+    /**
+     * Feishu channel connected
+     */
+    200: {
+        id: string;
+        botId: string;
+        channelType: 'slack' | 'discord' | 'feishu';
+        accountId: string;
+        status: 'pending' | 'connected' | 'disconnected' | 'error';
+        teamName: string;
+        appId?: string;
+        botUserId?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostApiV1ChannelsFeishuConnectResponse = PostApiV1ChannelsFeishuConnectResponses[keyof PostApiV1ChannelsFeishuConnectResponses];
+
 export type GetApiV1ChannelsData = {
     body?: never;
     path?: never;
@@ -2182,6 +2223,122 @@ export type PostApiInternalPoolsByPoolIdCheckSlackTokensResponses = {
 
 export type PostApiInternalPoolsByPoolIdCheckSlackTokensResponse = PostApiInternalPoolsByPoolIdCheckSlackTokensResponses[keyof PostApiInternalPoolsByPoolIdCheckSlackTokensResponses];
 
+export type GetApiV1PoolsByPoolIdModelProvidersData = {
+    body?: never;
+    path: {
+        poolId: string;
+    };
+    query?: never;
+    url: '/api/v1/pools/{poolId}/model-providers';
+};
+
+export type GetApiV1PoolsByPoolIdModelProvidersErrors = {
+    /**
+     * Pool not found
+     */
+    404: {
+        message: string;
+    };
+};
+
+export type GetApiV1PoolsByPoolIdModelProvidersError = GetApiV1PoolsByPoolIdModelProvidersErrors[keyof GetApiV1PoolsByPoolIdModelProvidersErrors];
+
+export type GetApiV1PoolsByPoolIdModelProvidersResponses = {
+    /**
+     * Pool model providers
+     */
+    200: {
+        providers: Array<{
+            id: string;
+            poolId: string;
+            providerKey: string;
+            baseUrl: string;
+            apiType: string;
+            models: Array<{
+                id: string;
+                name?: string;
+                reasoning?: boolean;
+                input?: Array<string>;
+                contextWindow?: number;
+                maxTokens?: number;
+            }>;
+            status: 'active' | 'disabled';
+            hasApiKey: boolean;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    };
+};
+
+export type GetApiV1PoolsByPoolIdModelProvidersResponse = GetApiV1PoolsByPoolIdModelProvidersResponses[keyof GetApiV1PoolsByPoolIdModelProvidersResponses];
+
+export type PutApiV1PoolsByPoolIdModelProvidersByProviderKeyData = {
+    body?: {
+        baseUrl: string;
+        apiType?: string;
+        apiKey?: string;
+        models?: Array<{
+            id: string;
+            name?: string;
+            reasoning?: boolean;
+            input?: Array<string>;
+            contextWindow?: number;
+            maxTokens?: number;
+        }>;
+        status?: 'active' | 'disabled';
+    };
+    path: {
+        poolId: string;
+        providerKey: string;
+    };
+    query?: never;
+    url: '/api/v1/pools/{poolId}/model-providers/{providerKey}';
+};
+
+export type PutApiV1PoolsByPoolIdModelProvidersByProviderKeyErrors = {
+    /**
+     * Invalid model provider payload
+     */
+    400: {
+        message: string;
+    };
+    /**
+     * Pool not found
+     */
+    404: {
+        message: string;
+    };
+};
+
+export type PutApiV1PoolsByPoolIdModelProvidersByProviderKeyError = PutApiV1PoolsByPoolIdModelProvidersByProviderKeyErrors[keyof PutApiV1PoolsByPoolIdModelProvidersByProviderKeyErrors];
+
+export type PutApiV1PoolsByPoolIdModelProvidersByProviderKeyResponses = {
+    /**
+     * Pool model provider updated
+     */
+    200: {
+        id: string;
+        poolId: string;
+        providerKey: string;
+        baseUrl: string;
+        apiType: string;
+        models: Array<{
+            id: string;
+            name?: string;
+            reasoning?: boolean;
+            input?: Array<string>;
+            contextWindow?: number;
+            maxTokens?: number;
+        }>;
+        status: 'active' | 'disabled';
+        hasApiKey: boolean;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PutApiV1PoolsByPoolIdModelProvidersByProviderKeyResponse = PutApiV1PoolsByPoolIdModelProvidersByProviderKeyResponses[keyof PutApiV1PoolsByPoolIdModelProvidersByProviderKeyResponses];
+
 export type GetApiV1ArtifactsData = {
     body?: never;
     path?: never;
@@ -2493,6 +2650,12 @@ export type PostApiV1IntegrationsConnectErrors = {
         message: string;
     };
     /**
+     * User bot context is ambiguous
+     */
+    409: {
+        message: string;
+    };
+    /**
      * Integration service not configured
      */
     502: {
@@ -2568,6 +2731,12 @@ export type PostApiV1IntegrationsByIntegrationIdRefreshErrors = {
      * Integration not found
      */
     404: {
+        message: string;
+    };
+    /**
+     * User bot context is ambiguous
+     */
+    409: {
         message: string;
     };
     /**

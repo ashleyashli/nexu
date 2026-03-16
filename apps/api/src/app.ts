@@ -26,6 +26,7 @@ import { registerIntegrationRoutes } from "./routes/integration-routes.js";
 import { registerInviteRoutes } from "./routes/invite-routes.js";
 import { registerModelRoutes } from "./routes/model-routes.js";
 import { registerOnboardingRoutes } from "./routes/onboarding-routes.js";
+import { registerPoolModelProviderRoutes } from "./routes/pool-model-provider-routes.js";
 import { registerPoolRoutes } from "./routes/pool-routes.js";
 import { registerSecretRoutes } from "./routes/secret-routes.js";
 import {
@@ -101,6 +102,7 @@ export function createApp() {
   registerInviteRoutes(app);
   registerModelRoutes(app);
   registerPoolRoutes(app);
+  registerPoolModelProviderRoutes(app);
   registerArtifactRoutes(app);
   registerSessionRoutes(app);
   registerIntegrationRoutes(app);
