@@ -18,8 +18,33 @@ import { toast } from "sonner";
 import "@/lib/api";
 import {
   deleteApiV1ChannelsByChannelId,
+  getApiV1Bots,
   getApiV1Channels,
+  getApiV1Sessions,
 } from "../../lib/api/sdk.gen";
+
+function formatModelName(modelId: string | null | undefined): string {
+  if (!modelId) return "Claude Opus 4.6";
+  const withoutProvider = modelId.includes("/")
+    ? modelId.split("/").slice(1).join("/")
+    : modelId;
+  return withoutProvider
+    .split(/[-_]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function formatRelativeTime(date: string | null | undefined): string {
+  if (!date) return "暂无活动";
+  const diff = Date.now() - new Date(date).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "刚刚活跃";
+  if (minutes < 60) return `${minutes} 分钟前活跃`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前活跃`;
+  const days = Math.floor(hours / 24);
+  return `${days} 天前活跃`;
+}
 
 const GITHUB_URL = "https://github.com/refly-ai/nexu";
 
@@ -252,6 +277,36 @@ export function HomePage() {
     },
   });
 
+  const { data: sessionsData } = useQuery({
+    queryKey: ["sessions"],
+    queryFn: async () => {
+      const { data } = await getApiV1Sessions();
+      return data;
+    },
+  });
+
+  const { data: botsData } = useQuery({
+    queryKey: ["bots"],
+    queryFn: async () => {
+      const { data } = await getApiV1Bots();
+      return data;
+    },
+  });
+
+  const modelName = formatModelName(botsData?.bots?.[0]?.modelId);
+  const sessions = sessionsData?.sessions ?? [];
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const messagesToday = sessions.reduce((sum, s) => {
+    const active = s.lastMessageAt && new Date(s.lastMessageAt) >= todayStart;
+    return sum + (active ? s.messageCount : 0);
+  }, 0);
+  const lastActiveAt = sessions.reduce<string | null>((latest, s) => {
+    if (!s.lastMessageAt) return latest;
+    if (!latest) return s.lastMessageAt;
+    return s.lastMessageAt > latest ? s.lastMessageAt : latest;
+  }, null);
+
   const channels = channelsData?.channels ?? [];
   const connectedCount = channels.length;
   const connectedTypes = new Set<string>(channels.map((c) => c.channelType));
@@ -306,12 +361,16 @@ export function HomePage() {
                   <div className="flex items-center gap-2 text-[11px] text-text-muted mb-3">
                     <span className="flex items-center gap-1">
                       <Cpu size={10} />
-                      Claude Opus 4.6
+                      {modelName}
                     </span>
                     <span className="text-border">&middot;</span>
-                    <span>12 messages today</span>
+                    <span>
+                      {sessionsData ? `今日 ${messagesToday} 条消息` : "..."}
+                    </span>
                     <span className="text-border">&middot;</span>
-                    <span>Active 2 min ago</span>
+                    <span>
+                      {sessionsData ? formatRelativeTime(lastActiveAt) : "..."}
+                    </span>
                   </div>
                   <TypingText
                     message={`Welcome! 🎉 We're so glad you're here. Your setup is complete — click "Chat in ${chatShortName}" on the right to start chatting with nexu. We're here whenever you need us.`}
