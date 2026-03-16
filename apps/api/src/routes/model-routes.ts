@@ -6,7 +6,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Model } from "@nexu/shared";
 import { modelListResponseSchema } from "@nexu/shared";
 import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
+import { db, pool } from "../db/index.js";
 import { modelProviders } from "../db/schema/index.js";
 import { encrypt } from "../lib/crypto.js";
 import { PLATFORM_MODELS } from "../lib/models.js";
@@ -279,6 +279,65 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
         valid: false,
         error: err instanceof Error ? err.message : "Request failed",
       });
+    }
+  });
+
+  // List Link cloud model catalog (providers + models from link.* schema)
+  app.get("/api/v1/link-catalog", async (c) => {
+    try {
+      const { rows } = await pool.query(`
+        SELECT
+          p.id   AS provider_id,
+          p.name AS provider_name,
+          p.kind,
+          m.id   AS model_id,
+          m.name AS model_name,
+          m.external_name,
+          m.input_price,
+          m.output_price
+        FROM link.providers p
+        JOIN link.models m ON m.provider_id = p.id
+        WHERE p.status = 'active' AND m.status = 'active'
+        ORDER BY p.name, m.name
+      `);
+
+      const map = new Map<
+        string,
+        {
+          id: string;
+          name: string;
+          kind: string;
+          models: Array<{
+            id: string;
+            name: string;
+            externalName: string;
+            inputPrice: string | null;
+            outputPrice: string | null;
+          }>;
+        }
+      >();
+
+      for (const r of rows) {
+        if (!map.has(r.provider_id)) {
+          map.set(r.provider_id, {
+            id: r.provider_id,
+            name: r.provider_name,
+            kind: r.kind,
+            models: [],
+          });
+        }
+        map.get(r.provider_id)!.models.push({
+          id: r.model_id,
+          name: r.model_name,
+          externalName: r.external_name,
+          inputPrice: r.input_price,
+          outputPrice: r.output_price,
+        });
+      }
+
+      return c.json({ providers: Array.from(map.values()) });
+    } catch {
+      return c.json({ providers: [] });
     }
   });
 }

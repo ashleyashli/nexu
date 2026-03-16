@@ -269,17 +269,15 @@ export function ModelsPage() {
       managed: boolean;
     }> = [];
 
-    // Nexu official first (if present from API)
+    // Nexu official — always shown
     const nexuProvider = providers.find((p) => p.id === "nexu");
-    if (nexuProvider) {
-      items.push({
-        id: "nexu",
-        name: "Nexu Official",
-        modelCount: nexuProvider.models.length,
-        configured: true,
-        managed: true,
-      });
-    }
+    items.push({
+      id: "nexu",
+      name: "Nexu Official",
+      modelCount: nexuProvider?.models.length ?? 0,
+      configured: (nexuProvider?.models.length ?? 0) > 0,
+      managed: true,
+    });
 
     // BYOK providers — always listed
     for (const pid of BYOK_PROVIDER_IDS) {
@@ -483,12 +481,57 @@ export function ModelsPage() {
   );
 }
 
+// ── Link catalog types ─────────────────────────────────────────
+
+interface LinkModel {
+  id: string;
+  name: string;
+  externalName: string;
+  inputPrice: string | null;
+  outputPrice: string | null;
+}
+
+interface LinkProvider {
+  id: string;
+  name: string;
+  kind: string;
+  models: LinkModel[];
+}
+
+async function fetchLinkCatalog(): Promise<LinkProvider[]> {
+  const res = await fetch("/api/v1/link-catalog");
+  if (!res.ok) return [];
+  const data = (await res.json()) as { providers: LinkProvider[] };
+  return data.providers ?? [];
+}
+
 // ── Managed provider detail (Nexu Official) ───────────────────
 
 function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
-  const handleLogin = () => {
-    // TODO: Integrate with cloud-connect API
-    window.open("/auth", "_blank", "noopener,noreferrer");
+  const { data: linkProviders = [], isLoading: catalogLoading } = useQuery({
+    queryKey: ["link-catalog"],
+    queryFn: fetchLinkCatalog,
+  });
+
+  const totalModels = linkProviders.reduce(
+    (sum, p) => sum + p.models.length,
+    0,
+  );
+
+  const handleLogin = async () => {
+    try {
+      const res = await fetch("/api/internal/desktop/cloud-connect", {
+        method: "POST",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { authUrl?: string };
+        if (data.authUrl) {
+          window.open(data.authUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    } catch {
+      window.open("/auth", "_blank", "noopener,noreferrer");
+    }
   };
 
   return (
@@ -520,8 +563,7 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
         </div>
         <div className="text-[12px] leading-[1.7] text-text-secondary mt-1.5">
           登录 Nexu
-          账号后，即可直接使用官方无限量高级模型，例如 Claude Opus 4.6、GPT-5.4
-          等，无需单独配置 API Key。
+          账号后，即可直接使用官方提供的高级模型，无需单独配置 API Key。
         </div>
         <button
           type="button"
@@ -533,13 +575,13 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
         </button>
       </div>
 
-      {/* Model list */}
+      {/* Connected cloud models (from API) */}
       {provider.models.length > 0 && (
-        <div>
+        <div className="mb-6">
           <div className="text-[13px] font-semibold text-text-primary mb-3">
-            模型列表
+            已启用模型
             <span className="ml-2 text-[11px] font-normal text-text-muted">
-              共 {provider.models.length} 个模型
+              共 {provider.models.length} 个
             </span>
           </div>
           <div className="space-y-1.5">
@@ -565,6 +607,68 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
           </div>
         </div>
       )}
+
+      {/* Link provider catalog */}
+      {catalogLoading ? (
+        <div className="flex items-center gap-2 text-[12px] text-text-muted py-4">
+          <Loader2 size={14} className="animate-spin" />
+          加载模型目录...
+        </div>
+      ) : linkProviders.length > 0 ? (
+        <div>
+          <div className="text-[13px] font-semibold text-text-primary mb-1">
+            可用模型目录
+            <span className="ml-2 text-[11px] font-normal text-text-muted">
+              共 {totalModels} 个模型，来自 {linkProviders.length} 个服务商
+            </span>
+          </div>
+          <div className="text-[11px] text-text-muted mb-4">
+            以下模型在登录 Nexu 账号后即可使用
+          </div>
+          <div className="space-y-5">
+            {linkProviders.map((lp) => (
+              <div key={lp.id}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-4 h-4 rounded flex items-center justify-center shrink-0">
+                    <ProviderLogo provider={lp.kind} size={14} />
+                  </span>
+                  <span className="text-[12px] font-medium text-text-primary">
+                    {lp.name}
+                  </span>
+                  <span className="text-[10px] text-text-muted">
+                    {lp.models.length} 个模型
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {lp.models.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface-0 px-3 py-2.5 opacity-70"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0">
+                          <ProviderLogo provider={lp.kind} size={16} />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-[12px] font-medium text-text-primary truncate">
+                            {m.name}
+                          </div>
+                          <div className="text-[10px] text-text-muted">
+                            {m.externalName}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-text-muted/60 shrink-0">
+                        登录后可用
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
