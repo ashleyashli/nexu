@@ -30,6 +30,8 @@ pnpm desktop:start                    # Build and launch the desktop local runti
 pnpm desktop:stop                     # Stop the desktop local runtime stack
 pnpm desktop:restart                  # Restart the desktop local runtime stack
 pnpm desktop:status                   # Show desktop local runtime status
+pnpm desktop:dist:mac                 # Build signed macOS desktop distributables
+pnpm desktop:dist:mac:unsigned        # Build unsigned macOS desktop distributables
 pnpm --filter @nexu/api dev           # API only
 pnpm --filter @nexu/web dev           # Web only
 pnpm build                            # Build all
