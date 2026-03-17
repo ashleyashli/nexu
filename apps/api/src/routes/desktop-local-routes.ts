@@ -1,14 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { OpenAPIHono } from "@hono/zod-openapi";
-import { eq } from "drizzle-orm";
-import { encrypt } from "../lib/crypto.js";
-import { db } from "../db/index.js";
-import { bots, gatewayPools } from "../db/schema/index.js";
-import { publishPoolConfigSnapshot } from "../services/runtime/pool-config-service.js";
-import { logger } from "../lib/logger.js";
-import type { AppBindings } from "../types.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import type { OpenAPIHono } from "@hono/zod-openapi";
+import { eq } from "drizzle-orm";
+import { db } from "../db/index.js";
+import { bots, gatewayPools } from "../db/schema/index.js";
+import { encrypt } from "../lib/crypto.js";
+import { logger } from "../lib/logger.js";
+import { publishPoolConfigSnapshot } from "../services/runtime/pool-config-service.js";
+import type { AppBindings } from "../types.js";
 
 /**
  * In-memory state for the cloud connection polling flow.
@@ -177,7 +177,7 @@ async function pollCloudForAuthorization(
         pollingState = null;
         return;
       }
-    } catch (err) {
+    } catch (_err) {
       if (signal.aborted) return;
       // Network error — continue polling
     }
@@ -197,10 +197,7 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
   // Returns 200 when API + DB are responsive and at least one bot is configured.
   app.get("/api/internal/desktop/ready", async (c) => {
     try {
-      const botRows = await db
-        .select({ id: bots.id })
-        .from(bots)
-        .limit(1);
+      const botRows = await db.select({ id: bots.id }).from(bots).limit(1);
 
       if (botRows.length === 0) {
         return c.json({ ready: false, reason: "no bots configured" }, 503);
@@ -220,10 +217,7 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
     }
     const existing = loadCredentials();
     if (existing) {
-      return c.json(
-        { error: "Already connected. Disconnect first." },
-        409,
-      );
+      return c.json({ error: "Already connected. Disconnect first." }, 409);
     }
 
     const cloudApiUrl = getCloudApiUrl();
@@ -234,21 +228,15 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
       .digest("hex");
 
     // Register device on cloud
-    const res = await fetch(
-      `${cloudApiUrl}/api/auth/device-register`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deviceId, deviceSecretHash }),
-      },
-    );
+    const res = await fetch(`${cloudApiUrl}/api/auth/device-register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, deviceSecretHash }),
+    });
 
     if (!res.ok) {
       const body = await res.text();
-      return c.json(
-        { error: `Failed to register device: ${body}` },
-        502,
-      );
+      return c.json({ error: `Failed to register device: ${body}` }, 502);
     }
 
     // Start background polling
@@ -298,8 +286,7 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
 
     // Write to desktop-config.json
     const stateDir =
-      process.env.OPENCLAW_STATE_DIR ??
-      path.join(process.cwd(), ".nexu-state");
+      process.env.OPENCLAW_STATE_DIR ?? path.join(process.cwd(), ".nexu-state");
     if (!fs.existsSync(stateDir)) fs.mkdirSync(stateDir, { recursive: true });
     const configPath = path.join(stateDir, "desktop-config.json");
 
@@ -333,8 +320,7 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
   // Get current default model
   app.get("/api/internal/desktop/default-model", (c) => {
     const stateDir =
-      process.env.OPENCLAW_STATE_DIR ??
-      path.join(process.cwd(), ".nexu-state");
+      process.env.OPENCLAW_STATE_DIR ?? path.join(process.cwd(), ".nexu-state");
     const configPath = path.join(stateDir, "desktop-config.json");
     try {
       if (fs.existsSync(configPath)) {

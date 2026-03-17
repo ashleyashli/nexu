@@ -1,7 +1,6 @@
 import { ChannelConnectModal } from "@/components/channel-connect-modal";
 import { ProviderLogo } from "@/components/provider-logo";
 import { cn } from "@/lib/utils";
-import { track } from "@/lib/tracking";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -353,7 +352,8 @@ export function HomePage() {
 
   // Use desktop-default-model real model name when available, fall back to formatModelName from bots
   const modelName = currentModelId
-    ? (models.find((m) => m.id === currentModelId)?.name ?? formatModelName(currentModelId))
+    ? (models.find((m) => m.id === currentModelId)?.name ??
+      formatModelName(currentModelId))
     : formatModelName(botsData?.bots?.[0]?.modelId);
 
   // Group models by provider (link/* models → "Nexu Official")
@@ -599,7 +599,11 @@ export function HomePage() {
                                 {ch.name}
                               </div>
                               <div className="mt-0.5 text-[11px] text-text-muted">
-                                {channelsLoading ? "加载中..." : isConnected ? "已连接" : "未连接"}
+                                {channelsLoading
+                                  ? "加载中..."
+                                  : isConnected
+                                    ? "已连接"
+                                    : "未连接"}
                               </div>
                             </div>
                           </div>
@@ -644,9 +648,7 @@ export function HomePage() {
                     <div className="relative" ref={modelDropdownRef}>
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowModelDropdown(!showModelDropdown)
-                        }
+                        onClick={() => setShowModelDropdown(!showModelDropdown)}
                         className="w-full flex items-center justify-between gap-2 rounded-lg border border-border bg-surface-0 px-3 py-2 transition-colors hover:border-border-hover"
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -654,18 +656,14 @@ export function HomePage() {
                             <span className="w-4 h-4 shrink-0 flex items-center justify-center">
                               <ProviderLogo
                                 provider={
-                                  models.find(
-                                    (m) => m.id === currentModelId,
-                                  )?.provider ?? "nexu"
+                                  models.find((m) => m.id === currentModelId)
+                                    ?.provider ?? "nexu"
                                 }
                                 size={14}
                               />
                             </span>
                           ) : (
-                            <Cpu
-                              size={14}
-                              className="text-accent shrink-0"
-                            />
+                            <Cpu size={14} className="text-accent shrink-0" />
                           )}
                           <span className="text-[12px] font-medium text-text-primary truncate">
                             {modelName || "未选择"}
@@ -680,136 +678,119 @@ export function HomePage() {
                         />
                       </button>
 
-                      {showModelDropdown && (() => {
-                        const query = modelSearch.toLowerCase().trim();
-                        const filteredProviders = modelsByProvider
-                          .map((p) => ({
-                            ...p,
-                            models: p.models.filter(
-                              (m) =>
-                                !query ||
-                                m.name.toLowerCase().includes(query) ||
-                                p.name.toLowerCase().includes(query),
-                            ),
-                          }))
-                          .filter((p) => p.models.length > 0);
+                      {showModelDropdown &&
+                        (() => {
+                          const query = modelSearch.toLowerCase().trim();
+                          const filteredProviders = modelsByProvider
+                            .map((p) => ({
+                              ...p,
+                              models: p.models.filter(
+                                (m) =>
+                                  !query ||
+                                  m.name.toLowerCase().includes(query) ||
+                                  p.name.toLowerCase().includes(query),
+                              ),
+                            }))
+                            .filter((p) => p.models.length > 0);
 
-                        return (
-                          <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface-1 shadow-xl">
-                            {/* Search */}
-                            <div className="px-3 pt-3 pb-2">
-                              <div className="flex items-center gap-2.5 rounded-lg bg-surface-0 border border-border px-3 py-2">
-                                <Search
-                                  size={14}
-                                  className="text-text-muted shrink-0"
-                                />
-                                <input
-                                  type="text"
-                                  value={modelSearch}
-                                  onChange={(e) => {
-                                    setModelSearch(e.target.value);
-                                    if (e.target.value.trim()) {
-                                      setExpandedProviders(
-                                        new Set(
-                                          modelsByProvider.map(
-                                            (p) => p.id,
+                          return (
+                            <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface-1 shadow-xl">
+                              {/* Search */}
+                              <div className="px-3 pt-3 pb-2">
+                                <div className="flex items-center gap-2.5 rounded-lg bg-surface-0 border border-border px-3 py-2">
+                                  <Search
+                                    size={14}
+                                    className="text-text-muted shrink-0"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={modelSearch}
+                                    onChange={(e) => {
+                                      setModelSearch(e.target.value);
+                                      if (e.target.value.trim()) {
+                                        setExpandedProviders(
+                                          new Set(
+                                            modelsByProvider.map((p) => p.id),
                                           ),
-                                        ),
-                                      );
-                                    }
-                                  }}
-                                  placeholder="搜索模型..."
-                                  className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
-                                  autoFocus
-                                />
+                                        );
+                                      }
+                                    }}
+                                    placeholder="搜索模型..."
+                                    className="flex-1 bg-transparent text-[13px] text-text-primary placeholder:text-text-muted/50 outline-none"
+                                  />
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Provider groups */}
-                            <div className="relative">
-                              <div className="pointer-events-none absolute inset-x-0 top-0 h-4 z-10 bg-gradient-to-b from-surface-1 to-transparent" />
-                              <div
-                                className="max-h-[360px] overflow-y-auto py-1"
-                                style={{
-                                  overscrollBehavior: "contain",
-                                  WebkitOverflowScrolling: "touch",
-                                }}
-                              >
-                                {filteredProviders.length === 0 ? (
-                                  <div className="px-4 py-8 text-center text-[13px] text-text-muted">
-                                    无匹配模型
-                                  </div>
-                                ) : (
-                                  filteredProviders.map((provider) => {
-                                    const isExpanded =
-                                      expandedProviders.has(
-                                        provider.id,
-                                      ) || !!query;
-                                    return (
-                                      <div key={provider.id}>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            if (query) return;
-                                            setExpandedProviders(
-                                              (prev) => {
-                                                const next = new Set(
-                                                  prev,
-                                                );
-                                                if (
-                                                  next.has(provider.id)
-                                                )
-                                                  next.delete(
-                                                    provider.id,
-                                                  );
-                                                else
-                                                  next.add(provider.id);
+                              {/* Provider groups */}
+                              <div className="relative">
+                                <div className="pointer-events-none absolute inset-x-0 top-0 h-4 z-10 bg-gradient-to-b from-surface-1 to-transparent" />
+                                <div
+                                  className="max-h-[360px] overflow-y-auto py-1"
+                                  style={{
+                                    overscrollBehavior: "contain",
+                                    WebkitOverflowScrolling: "touch",
+                                  }}
+                                >
+                                  {filteredProviders.length === 0 ? (
+                                    <div className="px-4 py-8 text-center text-[13px] text-text-muted">
+                                      无匹配模型
+                                    </div>
+                                  ) : (
+                                    filteredProviders.map((provider) => {
+                                      const isExpanded =
+                                        expandedProviders.has(provider.id) ||
+                                        !!query;
+                                      return (
+                                        <div key={provider.id}>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (query) return;
+                                              setExpandedProviders((prev) => {
+                                                const next = new Set(prev);
+                                                if (next.has(provider.id))
+                                                  next.delete(provider.id);
+                                                else next.add(provider.id);
                                                 return next;
-                                              },
-                                            );
-                                          }}
-                                          className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-surface-2/50 transition-colors"
-                                        >
-                                          <ChevronDown
-                                            size={11}
-                                            className={cn(
-                                              "text-text-muted/50 transition-transform",
-                                              !isExpanded && "-rotate-90",
-                                            )}
-                                          />
-                                          <span className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
-                                            <ProviderLogo
-                                              provider={provider.id}
-                                              size={15}
+                                              });
+                                            }}
+                                            className="w-full px-3 py-2 flex items-center gap-2.5 hover:bg-surface-2/50 transition-colors"
+                                          >
+                                            <ChevronDown
+                                              size={11}
+                                              className={cn(
+                                                "text-text-muted/50 transition-transform",
+                                                !isExpanded && "-rotate-90",
+                                              )}
                                             />
-                                          </span>
-                                          <span className="text-[12px] font-medium text-text-secondary">
-                                            {provider.name}
-                                          </span>
-                                          <span className="text-[11px] text-text-muted/40 ml-auto tabular-nums">
-                                            {provider.models.length}
-                                          </span>
-                                        </button>
-                                        {isExpanded &&
-                                          provider.models.map(
-                                            (model) => (
+                                            <span className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
+                                              <ProviderLogo
+                                                provider={provider.id}
+                                                size={15}
+                                              />
+                                            </span>
+                                            <span className="text-[12px] font-medium text-text-secondary">
+                                              {provider.name}
+                                            </span>
+                                            <span className="text-[11px] text-text-muted/40 ml-auto tabular-nums">
+                                              {provider.models.length}
+                                            </span>
+                                          </button>
+                                          {isExpanded &&
+                                            provider.models.map((model) => (
                                               <button
                                                 key={model.id}
                                                 type="button"
                                                 onClick={() =>
-                                                  updateModel.mutate(
-                                                    model.id,
-                                                  )
+                                                  updateModel.mutate(model.id)
                                                 }
                                                 className={cn(
                                                   "w-full flex items-center gap-2.5 pl-9 pr-3 py-2 text-left transition-colors hover:bg-surface-2",
-                                                  model.id ===
-                                                    currentModelId &&
+                                                  model.id === currentModelId &&
                                                     "bg-accent/5",
                                                 )}
                                               >
-                                                {model.id ===
-                                                currentModelId ? (
+                                                {model.id === currentModelId ? (
                                                   <Check
                                                     size={13}
                                                     className="text-accent shrink-0"
@@ -821,42 +802,41 @@ export function HomePage() {
                                                   {model.name}
                                                 </span>
                                               </button>
-                                            ),
-                                          )}
-                                      </div>
-                                    );
-                                  })
-                                )}
+                                            ))}
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 z-10 bg-gradient-to-t from-surface-1 to-transparent" />
                               </div>
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 z-10 bg-gradient-to-t from-surface-1 to-transparent" />
-                            </div>
 
-                            {/* Footer: settings shortcut */}
-                            <div className="border-t border-border px-2 py-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowModelDropdown(false);
-                                  navigate("/workspace/models");
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-surface-2"
-                              >
-                                <Settings
-                                  size={13}
-                                  className="text-text-muted"
-                                />
-                                <span className="text-[12px] text-text-muted">
-                                  配置 AI 服务商
-                                </span>
-                                <ArrowRight
-                                  size={11}
-                                  className="text-text-muted/50 ml-auto"
-                                />
-                              </button>
+                              {/* Footer: settings shortcut */}
+                              <div className="border-t border-border px-2 py-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowModelDropdown(false);
+                                    navigate("/workspace/models");
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors hover:bg-surface-2"
+                                >
+                                  <Settings
+                                    size={13}
+                                    className="text-text-muted"
+                                  />
+                                  <span className="text-[12px] text-text-muted">
+                                    配置 AI 服务商
+                                  </span>
+                                  <ArrowRight
+                                    size={11}
+                                    className="text-text-muted/50 ml-auto"
+                                  />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })()}
+                          );
+                        })()}
                     </div>
                   </div>
                 )}

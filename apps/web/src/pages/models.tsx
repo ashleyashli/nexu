@@ -5,8 +5,6 @@ import {
   ArrowUpRight,
   Check,
   ExternalLink,
-  Eye,
-  EyeOff,
   Loader2,
   RefreshCw,
   Trash2,
@@ -231,7 +229,7 @@ const BYOK_PROVIDER_IDS = ["anthropic", "openai", "google", "custom"] as const;
 export function ModelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isSetupMode = searchParams.get("setup") === "1";
-  const [search, setSearch] = useState("");
+  const [_search, _setSearch] = useState("");
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
     isSetupMode ? "anthropic" : null,
   );
@@ -540,14 +538,19 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
     const interval = setInterval(async () => {
       try {
         const res = await fetch("/api/internal/desktop/cloud-status");
-        const data = (await res.json()) as { connected: boolean; userEmail?: string };
+        const data = (await res.json()) as {
+          connected: boolean;
+          userEmail?: string;
+        };
         if (data.connected) {
           setLoginBusy(false);
           setCloudConnected(true);
           // Refresh provider/model data now that cloud is connected
           queryClient.invalidateQueries({ queryKey: ["link-catalog"] });
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [loginBusy, queryClient]);
@@ -607,12 +610,14 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
             </div>
           </div>
         </div>
-        <div className={cn(
-          "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium",
-          cloudConnected
-            ? "border border-emerald-500/20 bg-emerald-500/8 text-emerald-600"
-            : "border border-accent/20 bg-accent/8 text-accent",
-        )}>
+        <div
+          className={cn(
+            "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium",
+            cloudConnected
+              ? "border border-emerald-500/20 bg-emerald-500/8 text-emerald-600"
+              : "border border-accent/20 bg-accent/8 text-accent",
+          )}
+        >
           {cloudConnected ? "已连接" : "登录后可用"}
         </div>
       </div>
@@ -643,7 +648,9 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
               <button
                 type="button"
                 onClick={async () => {
-                  await fetch("/api/internal/desktop/cloud-disconnect", { method: "POST" }).catch(() => {});
+                  await fetch("/api/internal/desktop/cloud-disconnect", {
+                    method: "POST",
+                  }).catch(() => {});
                   setCloudConnected(false);
                 }}
                 className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
@@ -662,8 +669,8 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
             登录后使用 Nexu 官方模型
           </div>
           <div className="text-[12px] leading-[1.7] text-text-secondary mt-1.5">
-            登录 Nexu
-            账号后，即可直接使用官方提供的高级模型，无需单独配置 API Key。
+            登录 Nexu 账号后，即可直接使用官方提供的高级模型，无需单独配置 API
+            Key。
           </div>
           {loginBusy ? (
             <div className="mt-4 flex items-center gap-3">
@@ -718,7 +725,9 @@ function ManagedProviderDetail({ provider }: { provider: ProviderConfig }) {
                     <div className="text-[12px] font-medium text-text-primary truncate">
                       {model.name}
                     </div>
-                    <div className="text-[10px] text-text-muted">{model.id}</div>
+                    <div className="text-[10px] text-text-muted">
+                      {model.id}
+                    </div>
                   </div>
                 </div>
                 <ToggleSwitch checked={model.enabled} onChange={() => {}} />
@@ -766,7 +775,7 @@ function LinkModelCatalog({
   const [enabledIds, setEnabledIds] = useState<Set<string>>(
     () => new Set(allModelIds),
   );
-  const [saving, setSaving] = useState(false);
+  const [_saving, setSaving] = useState(false);
 
   // Sync when catalog changes
   useEffect(() => {
@@ -774,23 +783,20 @@ function LinkModelCatalog({
   }, [allModelIds]);
 
   // Persist enabled model selection to backend
-  const persistEnabledModels = useCallback(
-    async (ids: Set<string>) => {
-      setSaving(true);
-      try {
-        await fetch("/api/internal/desktop/cloud-models", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ enabledModelIds: Array.from(ids) }),
-        });
-      } catch {
-        /* best-effort */
-      } finally {
-        setSaving(false);
-      }
-    },
-    [],
-  );
+  const persistEnabledModels = useCallback(async (ids: Set<string>) => {
+    setSaving(true);
+    try {
+      await fetch("/api/internal/desktop/cloud-models", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabledModelIds: Array.from(ids) }),
+      });
+    } catch {
+      /* best-effort */
+    } finally {
+      setSaving(false);
+    }
+  }, []);
 
   const toggleModel = (id: string) => {
     setEnabledIds((prev) => {
@@ -879,7 +885,7 @@ function LinkModelCatalog({
 function ByokProviderDetail({
   providerId,
   dbProvider,
-  models,
+  models: _models,
   queryClient,
 }: {
   providerId: string;
@@ -916,7 +922,7 @@ function ByokProviderDetail({
     setProviderEnabled(dbProvider?.hasApiKey ?? false);
     setVerifiedModels(null);
     setEnabledModelIds(new Set(JSON.parse(dbProvider?.modelsJson ?? "[]")));
-  }, [providerId, dbProvider, meta.defaultProxyUrl]);
+  }, [dbProvider, meta.defaultProxyUrl]);
 
   // ── Verify mutation ──────────────────────────────────
   const verifyMutation = useMutation({
@@ -1009,7 +1015,9 @@ function ByokProviderDetail({
                 </a>
               )}
             </div>
-            <div className="text-[11px] text-text-muted">{meta.description}</div>
+            <div className="text-[11px] text-text-muted">
+              {meta.description}
+            </div>
           </div>
         </div>
         <ToggleSwitch
@@ -1021,7 +1029,10 @@ function ByokProviderDetail({
       {/* API Key + API 代理地址 */}
       <div className="space-y-4 mb-6">
         <div>
-          <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+          <label
+            htmlFor={`apikey-${providerId}`}
+            className="block text-[12px] font-medium text-text-secondary mb-1.5"
+          >
             API Key
             {dbProvider?.hasApiKey && (
               <span className="ml-2 text-emerald-600 font-normal text-[10px]">
@@ -1031,6 +1042,7 @@ function ByokProviderDetail({
           </label>
           <div className="flex gap-2">
             <input
+              id={`apikey-${providerId}`}
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
@@ -1061,7 +1073,9 @@ function ByokProviderDetail({
             <div
               className={cn(
                 "mt-1.5 text-[10px]",
-                verifyMutation.data?.valid ? "text-emerald-600" : "text-red-500",
+                verifyMutation.data?.valid
+                  ? "text-emerald-600"
+                  : "text-red-500",
               )}
             >
               {verifyMutation.data?.valid
@@ -1071,10 +1085,14 @@ function ByokProviderDetail({
           )}
         </div>
         <div>
-          <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+          <label
+            htmlFor={`baseurl-${providerId}`}
+            className="block text-[12px] font-medium text-text-secondary mb-1.5"
+          >
             API 代理地址
           </label>
           <input
+            id={`baseurl-${providerId}`}
             type="text"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
@@ -1230,4 +1248,3 @@ function ByokProviderDetail({
     </div>
   );
 }
-

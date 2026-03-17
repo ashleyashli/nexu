@@ -121,7 +121,9 @@ export function AuthPage() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: "Unknown error" }));
-        toast.error((body as { error?: string }).error ?? "Failed to connect desktop");
+        toast.error(
+          (body as { error?: string }).error ?? "Failed to connect desktop",
+        );
         // Don't reset desktopAuthCalled — prevent infinite retry loop
         setDesktopAuthorizing(false);
         return;
@@ -261,7 +263,13 @@ export function AuthPage() {
       desktopAuthCalled.current = false;
       handleDesktopAuthorize();
     }
-  }, [session?.user, isDesktopAuth, deviceId, desktopConnected, handleDesktopAuthorize]);
+  }, [
+    session?.user,
+    isDesktopAuth,
+    deviceId,
+    desktopConnected,
+    handleDesktopAuthorize,
+  ]);
 
   if (isPending) {
     return (
@@ -283,9 +291,10 @@ export function AuthPage() {
       sessionStorage.setItem("nexu_auth_source", authSourceParam);
     }
     try {
-      const callbackURL = isDesktopAuth && deviceId
-        ? `${window.location.origin}/auth?desktop=1&device_id=${encodeURIComponent(deviceId)}`
-        : `${window.location.origin}${returnTo}`;
+      const callbackURL =
+        isDesktopAuth && deviceId
+          ? `${window.location.origin}/auth?desktop=1&device_id=${encodeURIComponent(deviceId)}`
+          : `${window.location.origin}${returnTo}`;
       await authClient.signIn.social({
         provider,
         callbackURL,
@@ -388,7 +397,19 @@ export function AuthPage() {
       <div className="flex min-h-screen items-center justify-center bg-surface-0">
         <div className="text-center max-w-[400px] px-6">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-500/10 flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-green-500"
+              role="img"
+              aria-label="Connected"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -396,7 +417,8 @@ export function AuthPage() {
             Connected!
           </h1>
           <p className="text-[14px] text-text-muted leading-relaxed">
-            Your Nexu Desktop app is now connected to your cloud account. You can close this tab and return to the desktop app.
+            Your Nexu Desktop app is now connected to your cloud account. You
+            can close this tab and return to the desktop app.
           </p>
         </div>
       </div>
@@ -409,7 +431,9 @@ export function AuthPage() {
       <div className="flex min-h-screen items-center justify-center bg-surface-0">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto mb-4" />
-          <p className="text-[14px] text-text-muted">Connecting your desktop app...</p>
+          <p className="text-[14px] text-text-muted">
+            Connecting your desktop app...
+          </p>
         </div>
       </div>
     );

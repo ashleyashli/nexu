@@ -682,9 +682,7 @@ export const modelProviders = pgTable(
       .notNull()
       .$defaultFn(() => new Date().toISOString()),
   },
-  (table) => [
-    index("model_providers_provider_id_idx").on(table.providerId),
-  ],
+  (table) => [index("model_providers_provider_id_idx").on(table.providerId)],
 );
 
 // Test-only table used to validate post-merge DB migration workflow.

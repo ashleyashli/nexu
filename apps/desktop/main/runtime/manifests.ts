@@ -52,7 +52,9 @@ function buildNode22Path(): string | undefined {
         return `${binDir}:${process.env.PATH ?? ""}`;
       }
     }
-  } catch { /* nvm dir not present or unreadable */ }
+  } catch {
+    /* nvm dir not present or unreadable */
+  }
   return undefined;
 }
 

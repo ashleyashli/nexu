@@ -17,7 +17,13 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import "@/lib/api";
 import { getApiV1Sessions } from "../../lib/api/sdk.gen";
 
@@ -216,8 +222,8 @@ function WorkspaceLayoutInner() {
         : isModelsPage
           ? "Manage AI model providers"
           : selectedSession
-          ? `${selectedSession.channelType ?? "web"} · ${formatTime(selectedSession.lastMessageAt || selectedSession.updatedAt)}`
-          : `${sessions.length} conversation${sessions.length === 1 ? "" : "s"}`;
+            ? `${selectedSession.channelType ?? "web"} · ${formatTime(selectedSession.lastMessageAt || selectedSession.updatedAt)}`
+            : `${sessions.length} conversation${sessions.length === 1 ? "" : "s"}`;
 
   return (
     <div className="flex h-screen">
@@ -526,10 +532,15 @@ function WorkspaceLayoutInner() {
                 <div className="px-3 pt-3 pb-1">
                   <Link
                     to="/workspace/home"
-                    onClick={() => { track("workspace_home_click"); setMobileDrawerOpen(false); }}
+                    onClick={() => {
+                      track("workspace_home_click");
+                      setMobileDrawerOpen(false);
+                    }}
                     className={cn(
                       "flex items-center gap-2 w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-0.5 px-3 py-2",
-                      isHomePage ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+                      isHomePage
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-muted hover:text-text-primary hover:bg-surface-3",
                     )}
                   >
                     <Home size={14} />
@@ -537,10 +548,15 @@ function WorkspaceLayoutInner() {
                   </Link>
                   <Link
                     to="/workspace/channels"
-                    onClick={() => { track("workspace_deployments_click"); setMobileDrawerOpen(false); }}
+                    onClick={() => {
+                      track("workspace_deployments_click");
+                      setMobileDrawerOpen(false);
+                    }}
                     className={cn(
                       "flex items-center gap-2 w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-0.5 px-3 py-2",
-                      isChannelsPage ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+                      isChannelsPage
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-muted hover:text-text-primary hover:bg-surface-3",
                     )}
                   >
                     <Rocket size={14} />
@@ -548,10 +564,15 @@ function WorkspaceLayoutInner() {
                   </Link>
                   <Link
                     to="/workspace/skills"
-                    onClick={() => { track("workspace_skills_click"); setMobileDrawerOpen(false); }}
+                    onClick={() => {
+                      track("workspace_skills_click");
+                      setMobileDrawerOpen(false);
+                    }}
                     className={cn(
                       "flex items-center justify-between w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-0.5 px-3 py-2",
-                      isSkillsPage ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+                      isSkillsPage
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-muted hover:text-text-primary hover:bg-surface-3",
                     )}
                   >
                     <span className="flex items-center gap-2">
@@ -564,10 +585,15 @@ function WorkspaceLayoutInner() {
                   </Link>
                   <Link
                     to="/workspace/models"
-                    onClick={() => { track("workspace_settings_click"); setMobileDrawerOpen(false); }}
+                    onClick={() => {
+                      track("workspace_settings_click");
+                      setMobileDrawerOpen(false);
+                    }}
                     className={cn(
                       "flex items-center gap-2 w-full rounded-lg text-[12px] font-medium transition-colors cursor-pointer mt-0.5 px-3 py-2",
-                      isModelsPage ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-primary hover:bg-surface-3",
+                      isModelsPage
+                        ? "bg-accent/10 text-accent"
+                        : "text-text-muted hover:text-text-primary hover:bg-surface-3",
                     )}
                   >
                     <Settings size={14} />
@@ -589,24 +615,39 @@ function WorkspaceLayoutInner() {
                           type="button"
                           key={s.id}
                           onClick={() => {
-                            track("workspace_channel_click", { channel_type: s.channelType ?? "web" });
+                            track("workspace_channel_click", {
+                              channel_type: s.channelType ?? "web",
+                            });
                             setMobileDrawerOpen(false);
                             navigate(`/workspace/sessions/${s.id}`);
                           }}
                           className={cn(
                             "flex items-center gap-2.5 w-full rounded-lg transition-colors cursor-pointer px-2.5 py-2 text-left",
-                            isActive ? "bg-accent/10 text-accent" : "text-text-secondary hover:text-text-primary hover:bg-surface-3",
+                            isActive
+                              ? "bg-accent/10 text-accent"
+                              : "text-text-secondary hover:text-text-primary hover:bg-surface-3",
                           )}
                         >
-                          <SidebarPlatformIcon platform={s.channelType ?? "web"} />
+                          <SidebarPlatformIcon
+                            platform={s.channelType ?? "web"}
+                          />
                           <div className="flex-1 min-w-0">
-                            <div className="text-[13px] truncate font-medium">{s.title}</div>
+                            <div className="text-[13px] truncate font-medium">
+                              {s.title}
+                            </div>
                             <div className="text-[10px] text-text-muted truncate">
                               {formatTime(s.lastMessageAt || s.updatedAt)}
                               {s.channelType && ` · ${s.channelType}`}
                             </div>
                           </div>
-                          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.status === "active" ? "bg-emerald-500" : "bg-text-muted/30")} />
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full shrink-0",
+                              s.status === "active"
+                                ? "bg-emerald-500"
+                                : "bg-text-muted/30",
+                            )}
+                          />
                         </button>
                       );
                     })}

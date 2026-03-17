@@ -472,7 +472,9 @@ function DesktopShell() {
     async function poll() {
       while (!cancelled) {
         try {
-          const res = await fetch(readyUrl, { signal: AbortSignal.timeout(3000) });
+          const res = await fetch(readyUrl, {
+            signal: AbortSignal.timeout(3000),
+          });
           if (res.ok) {
             const data = await res.json();
             if (data.ready) {
@@ -488,7 +490,9 @@ function DesktopShell() {
     }
 
     void poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [runtimeConfig, apiReady]);
 
   const desktopWebUrl =
@@ -544,7 +548,9 @@ function DesktopShell() {
       </aside>
 
       <main className="desktop-shell-stage">
-        <div style={{ display: activeSurface === "control" ? "contents" : "none" }}>
+        <div
+          style={{ display: activeSurface === "control" ? "contents" : "none" }}
+        >
           <EmbeddedControlPlane />
         </div>
         <div style={{ display: activeSurface === "web" ? "contents" : "none" }}>
@@ -555,7 +561,11 @@ function DesktopShell() {
             version={webSurfaceVersion}
           />
         </div>
-        <div style={{ display: activeSurface === "openclaw" ? "contents" : "none" }}>
+        <div
+          style={{
+            display: activeSurface === "openclaw" ? "contents" : "none",
+          }}
+        >
           <SurfaceFrame
             description="Local OpenClaw gateway UI for inspecting runtime auth, models, and sessions."
             src={desktopOpenClawUrl}

@@ -1,6 +1,6 @@
-import { createMiddleware } from "hono/factory";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { createMiddleware } from "hono/factory";
 import { db } from "../db/index.js";
 import { apiKeys } from "../db/schema/index.js";
 import type { AppBindings } from "../types.js";

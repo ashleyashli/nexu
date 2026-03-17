@@ -32,7 +32,11 @@ const listModelsRoute = createRoute({
 /**
  * Read cached cloud models from credentials file.
  */
-function readCachedCloudModels(): { id: string; name: string; provider?: string }[] {
+function readCachedCloudModels(): {
+  id: string;
+  name: string;
+  provider?: string;
+}[] {
   if (process.env.NEXU_DESKTOP_MODE !== "true") return [];
 
   const stateDir =
@@ -52,14 +56,12 @@ function readCachedCloudModels(): { id: string; name: string; provider?: string 
  * In desktop mode, load cloud models from credentials file.
  */
 function getCloudModels(): Model[] {
-  return readCachedCloudModels().map(
-    (m) => ({
-      id: `link/${m.id}`,
-      name: m.name || m.id,
-      provider: m.provider ?? "nexu",
-      description: "Cloud model via Nexu Link",
-    }),
-  );
+  return readCachedCloudModels().map((m) => ({
+    id: `link/${m.id}`,
+    name: m.name || m.id,
+    provider: m.provider ?? "nexu",
+    description: "Cloud model via Nexu Link",
+  }));
 }
 
 /**
@@ -155,7 +157,8 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
         updates.encryptedApiKey = encrypt(body.apiKey);
       if (body.baseUrl !== undefined) updates.baseUrl = body.baseUrl;
       if (body.enabled !== undefined) updates.enabled = body.enabled;
-      if (body.displayName !== undefined) updates.displayName = body.displayName;
+      if (body.displayName !== undefined)
+        updates.displayName = body.displayName;
       if (body.modelsJson !== undefined) updates.modelsJson = body.modelsJson;
 
       await db
@@ -275,9 +278,7 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
       const data = (await res.json()) as {
         data?: Array<{ id: string }>;
       };
-      const models = Array.isArray(data.data)
-        ? data.data.map((m) => m.id)
-        : [];
+      const models = Array.isArray(data.data) ? data.data.map((m) => m.id) : [];
 
       return c.json({ valid: true, models });
     } catch (err) {
@@ -299,15 +300,16 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
         const credPath = path.join(stateDir, "cloud-credentials.json");
         if (fs.existsSync(credPath)) {
           const creds = JSON.parse(fs.readFileSync(credPath, "utf-8"));
-          let cloudModels: Array<{ id: string; name: string; provider?: string }> =
-            creds.cloudModels ?? [];
+          let cloudModels: Array<{
+            id: string;
+            name: string;
+            provider?: string;
+          }> = creds.cloudModels ?? [];
 
           // If no cached models, try fetching from Link gateway
           if (cloudModels.length === 0 && creds.encryptedApiKey) {
             const linkUrl =
-              creds.linkGatewayUrl ??
-              process.env.NEXU_LINK_URL ??
-              null;
+              creds.linkGatewayUrl ?? process.env.NEXU_LINK_URL ?? null;
             if (linkUrl) {
               try {
                 const apiKey = decrypt(creds.encryptedApiKey);
@@ -331,18 +333,39 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
                     fs.writeFileSync(credPath, JSON.stringify(creds, null, 2));
                   }
                 }
-              } catch { /* fetch failed, return empty */ }
+              } catch {
+                /* fetch failed, return empty */
+              }
             }
           }
 
           if (cloudModels.length > 0) {
-            const map = new Map<string, { id: string; name: string; kind: string; models: Array<{ id: string; name: string; externalName: string; inputPrice: string | null; outputPrice: string | null }> }>();
+            const map = new Map<
+              string,
+              {
+                id: string;
+                name: string;
+                kind: string;
+                models: Array<{
+                  id: string;
+                  name: string;
+                  externalName: string;
+                  inputPrice: string | null;
+                  outputPrice: string | null;
+                }>;
+              }
+            >();
             for (const m of cloudModels) {
               const provId = m.provider ?? "nexu";
               if (!map.has(provId)) {
-                map.set(provId, { id: provId, name: provId, kind: "cloud", models: [] });
+                map.set(provId, {
+                  id: provId,
+                  name: provId,
+                  kind: "cloud",
+                  models: [],
+                });
               }
-              map.get(provId)!.models.push({
+              map.get(provId)?.models.push({
                 id: m.id,
                 name: m.name || m.id,
                 externalName: m.id,
@@ -353,7 +376,9 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
             return c.json({ providers: Array.from(map.values()) });
           }
         }
-      } catch { /* fall through */ }
+      } catch {
+        /* fall through */
+      }
       return c.json({ providers: [] });
     }
 
@@ -399,7 +424,7 @@ export function registerModelRoutes(app: OpenAPIHono<AppBindings>) {
             models: [],
           });
         }
-        map.get(r.provider_id)!.models.push({
+        map.get(r.provider_id)?.models.push({
           id: r.model_id,
           name: r.model_name,
           externalName: r.external_name,

@@ -211,15 +211,15 @@ async function ensureDesktopAppUser(authUserId: string): Promise<void> {
     const legacyPoolId = "pool_local_01";
     if (gatewayPoolId !== legacyPoolId) {
       await pool.query(
-        `UPDATE bots SET pool_id = $1, updated_at = $2 WHERE pool_id = $3`,
+        "UPDATE bots SET pool_id = $1, updated_at = $2 WHERE pool_id = $3",
         [gatewayPoolId, now, legacyPoolId],
       );
       await pool.query(
-        `UPDATE gateway_assignments SET pool_id = $1 WHERE pool_id = $2`,
+        "UPDATE gateway_assignments SET pool_id = $1 WHERE pool_id = $2",
         [gatewayPoolId, legacyPoolId],
       );
       // Clean up the legacy pool row
-      await pool.query(`DELETE FROM gateway_pools WHERE id = $1`, [
+      await pool.query("DELETE FROM gateway_pools WHERE id = $1", [
         legacyPoolId,
       ]);
     }
@@ -227,7 +227,7 @@ async function ensureDesktopAppUser(authUserId: string): Promise<void> {
     // Ensure at least one bot exists so the /api/internal/desktop/ready
     // endpoint returns 200 and the webview can mount.
     const botResult = (await pool.query(
-      `SELECT id FROM bots WHERE user_id = $1 LIMIT 1`,
+      "SELECT id FROM bots WHERE user_id = $1 LIMIT 1",
       [runtimeConfig.desktopAuth.appUserId],
     )) as { rows: Array<{ id: string }> };
     if (botResult.rows.length === 0) {

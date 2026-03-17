@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import { db } from "../db/index.js";
 import { authUsers, users } from "../db/schema/index.js";
+import type { AppBindings } from "../types.js";
 
 let resolvedUser: { id: string; name: string; email: string } | null = null;
 
@@ -24,8 +25,8 @@ async function resolveDesktopUser(): Promise<{
     .where(eq(authUsers.email, "desktop@nexu.local"))
     .limit(1);
 
-  const existing = bootstrapUser
-    ?? (await db.select().from(authUsers).limit(1))[0];
+  const existing =
+    bootstrapUser ?? (await db.select().from(authUsers).limit(1))[0];
 
   if (existing) {
     // Ensure app-level user row exists
@@ -82,30 +83,32 @@ async function resolveDesktopUser(): Promise<{
  * Desktop-mode middleware: sets userId on every /api/v1/* request
  * so routes that expect an authenticated user work without browser login.
  */
-export const desktopAuthMiddleware = createMiddleware(async (c, next) => {
-  const user = await resolveDesktopUser();
-  c.set("userId", user.id);
-  // Provide a minimal session so routes that read session.user.* don't crash.
-  c.set("session", {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      emailVerified: true,
-      image: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    session: {
-      id: "desktop-session",
-      userId: user.id,
-      token: "",
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ipAddress: "127.0.0.1",
-      userAgent: "NexuDesktop",
-    },
-  } as any);
-  await next();
-});
+export const desktopAuthMiddleware = createMiddleware<AppBindings>(
+  async (c, next) => {
+    const user = await resolveDesktopUser();
+    c.set("userId", user.id);
+    // Provide a minimal session so routes that read session.user.* don't crash.
+    c.set("session", {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: true,
+        image: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      session: {
+        id: "desktop-session",
+        userId: user.id,
+        token: "",
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ipAddress: "127.0.0.1",
+        userAgent: "NexuDesktop",
+      },
+    } as AppBindings["Variables"]["session"]);
+    await next();
+  },
+);
