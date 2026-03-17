@@ -571,6 +571,16 @@ function DiagnosticsPage() {
           label="Crash dumps"
           value={diagnosticsInfo?.crashDumpsPath ?? "-"}
         />
+        <SummaryCard
+          label="Crash upload"
+          value={
+            diagnosticsInfo
+              ? diagnosticsInfo.crashReporterUploadToServer
+                ? "enabled"
+                : "local-only"
+              : "-"
+          }
+        />
       </section>
 
       <p className="runtime-note diagnostics-note">

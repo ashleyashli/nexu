@@ -1,4 +1,4 @@
-import { BrowserWindow, app, ipcMain, shell } from "electron";
+import { BrowserWindow, app, crashReporter, ipcMain, shell } from "electron";
 import {
   type HostInvokePayloadMap,
   type HostInvokeResultMap,
@@ -47,6 +47,7 @@ export function registerIpcHandlers(orchestrator: RuntimeOrchestrator): void {
           const result: HostInvokeResultMap["diagnostics:get-info"] = {
             crashDumpsPath: app.getPath("crashDumps"),
             processType: process.type,
+            crashReporterUploadToServer: crashReporter.getUploadToServer(),
           };
 
           return result;
