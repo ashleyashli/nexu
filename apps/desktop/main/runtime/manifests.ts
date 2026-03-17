@@ -31,20 +31,8 @@ function getBooleanEnv(name: string, fallback: boolean): boolean {
   return value === "1" || value.toLowerCase() === "true";
 }
 
-function resolveElectronNodeRunner(isPackaged: boolean): string {
-  if (!isPackaged || process.platform !== "darwin") {
-    return process.execPath;
-  }
-
-  const macOsDir = path.dirname(process.execPath);
-  const executableName = path.basename(process.execPath);
-  const helperCandidate = path.resolve(
-    macOsDir,
-    "../Frameworks",
-    `${executableName} Helper.app/Contents/MacOS/${executableName} Helper`,
-  );
-
-  return existsSync(helperCandidate) ? helperCandidate : process.execPath;
+function resolveElectronNodeRunner(): string {
+  return process.execPath;
 }
 
 /**
@@ -169,7 +157,7 @@ export function createRuntimeUnitManifests(
   const gatewayPoolId = runtimeConfig.gateway.poolId;
   const webUrl = runtimeConfig.urls.web;
   const authUrl = runtimeConfig.urls.auth;
-  const electronNodeRunner = resolveElectronNodeRunner(isPackaged);
+  const electronNodeRunner = resolveElectronNodeRunner();
   const node22Path = buildNode22Path();
 
   // Keep all default ports and local URLs defined from this one manifest factory. Other desktop
@@ -191,6 +179,7 @@ export function createRuntimeUnitManifests(
       autoStart: true,
       logFilePath: path.resolve(logsDir, "web.log"),
       env: {
+        ELECTRON_RUN_AS_NODE: "1",
         WEB_HOST: "127.0.0.1",
         WEB_PORT: String(webPort),
         WEB_API_ORIGIN: runtimeConfig.urls.apiBase,
@@ -238,6 +227,7 @@ export function createRuntimeUnitManifests(
       autoStart: getBooleanEnv("NEXU_DESKTOP_AUTOSTART_API", true),
       logFilePath: path.resolve(logsDir, "api.log"),
       env: {
+        ELECTRON_RUN_AS_NODE: "1",
         FORCE_COLOR: "1",
         PORT: String(apiPort),
         DATABASE_URL: runtimeConfig.database.pgliteUrl,
@@ -265,6 +255,7 @@ export function createRuntimeUnitManifests(
       autoStart: getBooleanEnv("NEXU_DESKTOP_AUTOSTART_GATEWAY", true),
       logFilePath: path.resolve(logsDir, "gateway.log"),
       env: {
+        ELECTRON_RUN_AS_NODE: "1",
         FORCE_COLOR: "1",
         NODE_ENV: "development",
         RUNTIME_API_BASE_URL: `http://127.0.0.1:${apiPort}`,
