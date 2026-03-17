@@ -129,6 +129,7 @@ export type AppInfo = {
 export type DiagnosticsInfo = {
   crashDumpsPath: string;
   processType: string;
+  crashReporterUploadToServer: boolean;
 };
 
 export type DesktopSurface = "web" | "openclaw" | "control" | "diagnostics";
