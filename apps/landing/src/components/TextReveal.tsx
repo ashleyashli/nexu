@@ -1,5 +1,4 @@
 import {
-  Children,
   type ReactNode,
   isValidElement,
   useEffect,
@@ -19,7 +18,8 @@ function extractText(node: ReactNode): string {
   if (!node) return "";
   if (Array.isArray(node)) return node.map(extractText).join("");
   if (isValidElement(node)) {
-    return extractText(node.props.children);
+    const props = node.props as Record<string, unknown>;
+    return extractText(props.children as ReactNode);
   }
   return "";
 }
@@ -36,11 +36,12 @@ function extractParagraphs(node: ReactNode): string[] {
     }
     if (isValidElement(n)) {
       const tag = typeof n.type === "string" ? n.type : "";
+      const props = n.props as Record<string, unknown>;
       if (tag === "p") {
-        paragraphs.push(extractText(n.props.children).trim());
+        paragraphs.push(extractText(props.children as ReactNode).trim());
       } else {
         // Recurse into wrapper divs etc.
-        walk(n.props.children);
+        walk(props.children as ReactNode);
       }
       return;
     }

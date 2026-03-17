@@ -629,8 +629,8 @@ import ToolsScrollTunnel from "../components/ToolsScrollTunnel.tsx";
       function showToc() {
         if (triggered) return;
         triggered = true;
-        tocModule.style.opacity = '1';
-        tocModule.style.transform = 'translateY(0)';
+        tocModule!.style.opacity = '1';
+        tocModule!.style.transform = 'translateY(0)';
       }
 
       const fullyVisible = new IntersectionObserver((entries) => {
@@ -661,10 +661,11 @@ import ToolsScrollTunnel from "../components/ToolsScrollTunnel.tsx";
     // Footer logo hover effects
     const footerLogo = document.getElementById('footer-logo');
     if (footerLogo) {
-      footerLogo.querySelectorAll('path[data-hover-fill]').forEach(path => {
-        const hoverColor = path.getAttribute('data-hover-fill');
-        path.addEventListener('mouseenter', () => { path.style.fill = hoverColor; });
-        path.addEventListener('mouseleave', () => { path.style.fill = '#2D2D2D'; });
+      footerLogo.querySelectorAll('path[data-hover-fill]').forEach(el => {
+        const svgPath = el as SVGElement;
+        const hoverColor = svgPath.getAttribute('data-hover-fill') || '';
+        svgPath.addEventListener('mouseenter', () => { svgPath.style.fill = hoverColor; });
+        svgPath.addEventListener('mouseleave', () => { svgPath.style.fill = '#2D2D2D'; });
       });
     }
   </script>
