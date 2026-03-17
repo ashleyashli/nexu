@@ -369,7 +369,9 @@ app.whenReady().then(async () => {
     const win = createMainWindow();
 
     if (app.isPackaged) {
-      const updateMgr = new UpdateManager(win, orchestrator);
+      const updateMgr = new UpdateManager(win, orchestrator, {
+        feedUrl: runtimeConfig.urls.updateFeed,
+      });
       setUpdateManager(updateMgr);
       updateMgr.startPeriodicCheck();
     }

@@ -6,6 +6,7 @@ import type { RuntimeOrchestrator } from "../runtime/daemon-supervisor";
 export interface UpdateManagerOptions {
   source?: UpdateSource;
   channel?: UpdateChannelName;
+  feedUrl?: string | null;
   autoDownload?: boolean;
   checkIntervalMs?: number;
   initialDelayMs?: number;
@@ -21,6 +22,7 @@ export class UpdateManager {
   private readonly orchestrator: RuntimeOrchestrator;
   private source: UpdateSource;
   private channel: UpdateChannelName;
+  private readonly feedUrl: string | null;
   private readonly checkIntervalMs: number;
   private readonly initialDelayMs: number;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -34,6 +36,7 @@ export class UpdateManager {
     this.orchestrator = orchestrator;
     this.source = options?.source ?? "github";
     this.channel = options?.channel ?? "stable";
+    this.feedUrl = options?.feedUrl ?? null;
     this.checkIntervalMs = options?.checkIntervalMs ?? 4 * 60 * 60 * 1000;
     this.initialDelayMs = options?.initialDelayMs ?? 60_000;
 
@@ -44,12 +47,13 @@ export class UpdateManager {
   }
 
   private configureFeedUrl(): void {
-    const envFeedUrl = process.env.NEXU_UPDATE_FEED_URL;
+    // Priority: env var > build config > source/channel logic
+    const overrideUrl = process.env.NEXU_UPDATE_FEED_URL ?? this.feedUrl;
 
-    if (envFeedUrl) {
+    if (overrideUrl) {
       autoUpdater.setFeedURL({
         provider: "generic",
-        url: envFeedUrl,
+        url: overrideUrl,
       });
       return;
     }

@@ -24,6 +24,11 @@ on:
         description: "GitHub release display name"
         required: true
         type: string
+      update_feed_url:
+        description: "NEXU_UPDATE_FEED_URL for auto-update (R2 path)"
+        required: false
+        type: string
+        default: ""
       artifact_suffix:
         description: "Suffix for artifact names (e.g. '-test' or empty)"
         required: false
@@ -102,22 +107,21 @@ jobs:
         env:
           CLOUD_URL: ${{ inputs.cloud_url }}
           LINK_URL: ${{ inputs.link_url }}
+          UPDATE_FEED_URL: ${{ inputs.update_feed_url }}
         run: |
-          if [ "$LINK_URL" = "null" ]; then
-            cat > apps/desktop/build-config.json << EOF
-          {
-            "NEXU_CLOUD_URL": "$CLOUD_URL",
-            "NEXU_LINK_URL": null
-          }
-          EOF
-          else
-            cat > apps/desktop/build-config.json << EOF
-          {
-            "NEXU_CLOUD_URL": "$CLOUD_URL",
-            "NEXU_LINK_URL": "$LINK_URL"
-          }
-          EOF
-          fi
+          node -e '
+            const config = {
+              NEXU_CLOUD_URL: process.env.CLOUD_URL,
+              NEXU_LINK_URL: process.env.LINK_URL === "null" ? null : process.env.LINK_URL,
+            };
+            if (process.env.UPDATE_FEED_URL) {
+              config.NEXU_UPDATE_FEED_URL = process.env.UPDATE_FEED_URL;
+            }
+            require("fs").writeFileSync(
+              "apps/desktop/build-config.json",
+              JSON.stringify(config, null, 2) + "\n"
+            );
+          '
 
           echo "[build] Generated build-config.json for ${{ inputs.environment }} environment:"
           cat apps/desktop/build-config.json
