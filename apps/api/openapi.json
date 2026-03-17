@@ -1874,6 +1874,102 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^data:image\\/(?:png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$"
+                      },
+                      {
+                        "nullable": true
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current user profile updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "plan": {
+                          "type": "string"
+                        },
+                        "inviteAccepted": {
+                          "type": "boolean"
+                        },
+                        "onboardingCompleted": {
+                          "type": "boolean"
+                        },
+                        "authSource": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "name",
+                        "plan",
+                        "inviteAccepted",
+                        "onboardingCompleted"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "profile"
+                  ]
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/me/auth-source": {
@@ -8332,14 +8428,14 @@
         }
       }
     },
-    "/api/v1/skillhub/catalog": {
+    "/api/v1/skills": {
       "get": {
         "tags": [
-          "SkillHub"
+          "Skills"
         ],
         "responses": {
           "200": {
-            "description": "SkillHub community skill catalog",
+            "description": "List of available skills",
             "content": {
               "application/json": {
                 "schema": {
@@ -8359,68 +8455,133 @@
                           "description": {
                             "type": "string"
                           },
-                          "downloads": {
-                            "type": "number"
+                          "longDescription": {
+                            "type": "string"
                           },
-                          "stars": {
-                            "type": "number"
+                          "iconName": {
+                            "type": "string"
                           },
-                          "tags": {
+                          "iconUrl": {
+                            "type": "string"
+                          },
+                          "fallbackIconUrl": {
+                            "type": "string"
+                          },
+                          "prompt": {
+                            "type": "string"
+                          },
+                          "examples": {
                             "type": "array",
                             "items": {
                               "type": "string"
                             }
                           },
-                          "version": {
+                          "tag": {
+                            "type": "string",
+                            "enum": [
+                              "office-collab",
+                              "file-knowledge",
+                              "creative-design",
+                              "biz-analysis",
+                              "av-generation",
+                              "info-content",
+                              "dev-tools"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "official",
+                              "custom",
+                              "community"
+                            ]
+                          },
+                          "tools": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string"
+                                },
+                                "iconUrl": {
+                                  "type": "string"
+                                },
+                                "fallbackIconUrl": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "slug",
+                                "name",
+                                "provider",
+                                "iconUrl",
+                                "fallbackIconUrl"
+                              ]
+                            }
+                          },
+                          "githubUrl": {
                             "type": "string"
                           },
-                          "updatedAt": {
-                            "type": "string"
+                          "installed": {
+                            "type": "boolean"
+                          },
+                          "updatable": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
                           "slug",
                           "name",
                           "description",
-                          "downloads",
-                          "stars",
-                          "tags",
-                          "version",
-                          "updatedAt"
+                          "iconName",
+                          "prompt",
+                          "tag",
+                          "source"
                         ]
                       }
                     },
-                    "installedSlugs": {
+                    "tags": {
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "office-collab",
+                              "file-knowledge",
+                              "creative-design",
+                              "biz-analysis",
+                              "av-generation",
+                              "info-content",
+                              "dev-tools"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "count"
+                        ]
                       }
-                    },
-                    "meta": {
-                      "type": "object",
-                      "nullable": true,
-                      "properties": {
-                        "version": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "skillCount": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "version",
-                        "updatedAt",
-                        "skillCount"
-                      ]
                     }
                   },
                   "required": [
                     "skills",
-                    "installedSlugs",
-                    "meta"
+                    "tags"
                   ]
                 }
               }
@@ -8429,146 +8590,15 @@
         }
       }
     },
-    "/api/v1/skillhub/install": {
-      "post": {
-        "tags": [
-          "SkillHub"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "slug": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
-                  }
-                },
-                "required": [
-                  "slug"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Install result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/skillhub/refresh": {
-      "post": {
-        "tags": [
-          "SkillHub"
-        ],
-        "responses": {
-          "200": {
-            "description": "Refresh result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "skillCount": {
-                      "type": "number"
-                    },
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "ok",
-                    "skillCount"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/skillhub/uninstall": {
-      "post": {
-        "tags": [
-          "SkillHub"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "slug": {
-                    "type": "string",
-                    "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
-                  }
-                },
-                "required": [
-                  "slug"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Uninstall result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean"
-                    },
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/skillhub/skills/{slug}": {
+    "/api/v1/skills/{slug}": {
       "get": {
         "tags": [
-          "SkillHub"
+          "Skills"
         ],
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9-]{0,127}$"
+              "type": "string"
             },
             "required": true,
             "name": "slug",
@@ -8577,7 +8607,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Skill detail with SKILL.md content",
+            "description": "Skill detail with tool auth status",
             "content": {
               "application/json": {
                 "schema": {
@@ -8592,38 +8622,201 @@
                     "description": {
                       "type": "string"
                     },
-                    "downloads": {
-                      "type": "number"
+                    "longDescription": {
+                      "type": "string"
                     },
-                    "stars": {
-                      "type": "number"
+                    "iconName": {
+                      "type": "string"
                     },
-                    "tags": {
+                    "iconUrl": {
+                      "type": "string"
+                    },
+                    "fallbackIconUrl": {
+                      "type": "string"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "examples": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       }
                     },
-                    "version": {
-                      "type": "string"
-                    },
-                    "updatedAt": {
-                      "type": "string"
-                    },
-                    "homepage": {
-                      "type": "string"
-                    },
-                    "installed": {
-                      "type": "boolean"
-                    },
-                    "skillContent": {
+                    "tag": {
                       "type": "string",
-                      "nullable": true
+                      "enum": [
+                        "office-collab",
+                        "file-knowledge",
+                        "creative-design",
+                        "biz-analysis",
+                        "av-generation",
+                        "info-content",
+                        "dev-tools"
+                      ]
                     },
-                    "files": {
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "official",
+                        "custom",
+                        "community"
+                      ]
+                    },
+                    "tools": {
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "provider": {
+                            "type": "string"
+                          },
+                          "iconUrl": {
+                            "type": "string"
+                          },
+                          "fallbackIconUrl": {
+                            "type": "string"
+                          },
+                          "authScheme": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "connected",
+                              "not_connected",
+                              "initiated",
+                              "expired"
+                            ]
+                          },
+                          "integrationId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "provider",
+                          "iconUrl",
+                          "fallbackIconUrl",
+                          "authScheme",
+                          "status"
+                        ]
+                      }
+                    },
+                    "githubUrl": {
+                      "type": "string"
+                    },
+                    "relatedSkills": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "longDescription": {
+                            "type": "string"
+                          },
+                          "iconName": {
+                            "type": "string"
+                          },
+                          "iconUrl": {
+                            "type": "string"
+                          },
+                          "fallbackIconUrl": {
+                            "type": "string"
+                          },
+                          "prompt": {
+                            "type": "string"
+                          },
+                          "examples": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "tag": {
+                            "type": "string",
+                            "enum": [
+                              "office-collab",
+                              "file-knowledge",
+                              "creative-design",
+                              "biz-analysis",
+                              "av-generation",
+                              "info-content",
+                              "dev-tools"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "official",
+                              "custom",
+                              "community"
+                            ]
+                          },
+                          "tools": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string"
+                                },
+                                "iconUrl": {
+                                  "type": "string"
+                                },
+                                "fallbackIconUrl": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "slug",
+                                "name",
+                                "provider",
+                                "iconUrl",
+                                "fallbackIconUrl"
+                              ]
+                            }
+                          },
+                          "githubUrl": {
+                            "type": "string"
+                          },
+                          "installed": {
+                            "type": "boolean"
+                          },
+                          "updatable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "description",
+                          "iconName",
+                          "prompt",
+                          "tag",
+                          "source"
+                        ]
                       }
                     }
                   },
@@ -8631,15 +8824,10 @@
                     "slug",
                     "name",
                     "description",
-                    "downloads",
-                    "stars",
-                    "tags",
-                    "version",
-                    "updatedAt",
-                    "homepage",
-                    "installed",
-                    "skillContent",
-                    "files"
+                    "iconName",
+                    "prompt",
+                    "tag",
+                    "source"
                   ]
                 }
               }
@@ -8647,6 +8835,186 @@
           },
           "404": {
             "description": "Skill not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/skills/filesystem": {
+      "get": {
+        "tags": [
+          "Skills"
+        ],
+        "responses": {
+          "200": {
+            "description": "Merged list of catalog and locally installed skills",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "longDescription": {
+                            "type": "string"
+                          },
+                          "iconName": {
+                            "type": "string"
+                          },
+                          "iconUrl": {
+                            "type": "string"
+                          },
+                          "fallbackIconUrl": {
+                            "type": "string"
+                          },
+                          "prompt": {
+                            "type": "string"
+                          },
+                          "examples": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "tag": {
+                            "type": "string",
+                            "enum": [
+                              "office-collab",
+                              "file-knowledge",
+                              "creative-design",
+                              "biz-analysis",
+                              "av-generation",
+                              "info-content",
+                              "dev-tools"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "official",
+                              "custom",
+                              "community"
+                            ]
+                          },
+                          "tools": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "provider": {
+                                  "type": "string"
+                                },
+                                "iconUrl": {
+                                  "type": "string"
+                                },
+                                "fallbackIconUrl": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "slug",
+                                "name",
+                                "provider",
+                                "iconUrl",
+                                "fallbackIconUrl"
+                              ]
+                            }
+                          },
+                          "githubUrl": {
+                            "type": "string"
+                          },
+                          "installed": {
+                            "type": "boolean"
+                          },
+                          "updatable": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "slug",
+                          "name",
+                          "description",
+                          "iconName",
+                          "prompt",
+                          "tag",
+                          "source"
+                        ]
+                      }
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "enum": [
+                              "office-collab",
+                              "file-knowledge",
+                              "creative-design",
+                              "biz-analysis",
+                              "av-generation",
+                              "info-content",
+                              "dev-tools"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "label",
+                          "count"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "skills",
+                    "tags"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {

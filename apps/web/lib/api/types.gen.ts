@@ -724,6 +724,37 @@ export type GetApiV1MeResponses = {
 
 export type GetApiV1MeResponse = GetApiV1MeResponses[keyof GetApiV1MeResponses];
 
+export type PatchApiV1MeData = {
+    body?: {
+        name?: string;
+        image?: string | unknown;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type PatchApiV1MeResponses = {
+    /**
+     * Current user profile updated
+     */
+    200: {
+        ok: boolean;
+        profile: {
+            id: string;
+            email: string;
+            name: string;
+            image?: string;
+            plan: string;
+            inviteAccepted: boolean;
+            onboardingCompleted: boolean;
+            authSource?: string;
+        };
+    };
+};
+
+export type PatchApiV1MeResponse = PatchApiV1MeResponses[keyof PatchApiV1MeResponses];
+
 export type PostApiV1MeAuthSourceData = {
     body?: {
         source: 'email' | 'google' | 'slack_shared_claim' | 'IM' | 'Landing';
@@ -2850,111 +2881,61 @@ export type DeleteApiV1IntegrationsByIntegrationIdResponses = {
 
 export type DeleteApiV1IntegrationsByIntegrationIdResponse = DeleteApiV1IntegrationsByIntegrationIdResponses[keyof DeleteApiV1IntegrationsByIntegrationIdResponses];
 
-export type GetApiV1SkillhubCatalogData = {
+export type GetApiV1SkillsData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/skillhub/catalog';
+    url: '/api/v1/skills';
 };
 
-export type GetApiV1SkillhubCatalogResponses = {
+export type GetApiV1SkillsResponses = {
     /**
-     * SkillHub community skill catalog
+     * List of available skills
      */
     200: {
         skills: Array<{
             slug: string;
             name: string;
             description: string;
-            downloads: number;
-            stars: number;
-            tags: Array<string>;
-            version: string;
-            updatedAt: string;
+            longDescription?: string;
+            iconName: string;
+            iconUrl?: string;
+            fallbackIconUrl?: string;
+            prompt: string;
+            examples?: Array<string>;
+            tag: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+            source: 'official' | 'custom' | 'community';
+            tools?: Array<{
+                slug: string;
+                name: string;
+                provider: string;
+                iconUrl: string;
+                fallbackIconUrl: string;
+            }>;
+            githubUrl?: string;
+            installed?: boolean;
+            updatable?: boolean;
         }>;
-        installedSlugs: Array<string>;
-        meta: {
-            version: string;
-            updatedAt: string;
-            skillCount: number;
-        };
+        tags: Array<{
+            id: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+            label: string;
+            count: number;
+        }>;
     };
 };
 
-export type GetApiV1SkillhubCatalogResponse = GetApiV1SkillhubCatalogResponses[keyof GetApiV1SkillhubCatalogResponses];
+export type GetApiV1SkillsResponse = GetApiV1SkillsResponses[keyof GetApiV1SkillsResponses];
 
-export type PostApiV1SkillhubInstallData = {
-    body?: {
-        slug: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/v1/skillhub/install';
-};
-
-export type PostApiV1SkillhubInstallResponses = {
-    /**
-     * Install result
-     */
-    200: {
-        ok: boolean;
-        error?: string;
-    };
-};
-
-export type PostApiV1SkillhubInstallResponse = PostApiV1SkillhubInstallResponses[keyof PostApiV1SkillhubInstallResponses];
-
-export type PostApiV1SkillhubRefreshData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/skillhub/refresh';
-};
-
-export type PostApiV1SkillhubRefreshResponses = {
-    /**
-     * Refresh result
-     */
-    200: {
-        ok: boolean;
-        skillCount: number;
-        error?: string;
-    };
-};
-
-export type PostApiV1SkillhubRefreshResponse = PostApiV1SkillhubRefreshResponses[keyof PostApiV1SkillhubRefreshResponses];
-
-export type PostApiV1SkillhubUninstallData = {
-    body?: {
-        slug: string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/v1/skillhub/uninstall';
-};
-
-export type PostApiV1SkillhubUninstallResponses = {
-    /**
-     * Uninstall result
-     */
-    200: {
-        ok: boolean;
-        error?: string;
-    };
-};
-
-export type PostApiV1SkillhubUninstallResponse = PostApiV1SkillhubUninstallResponses[keyof PostApiV1SkillhubUninstallResponses];
-
-export type GetApiV1SkillhubSkillsBySlugData = {
+export type GetApiV1SkillsBySlugData = {
     body?: never;
     path: {
         slug: string;
     };
     query?: never;
-    url: '/api/v1/skillhub/skills/{slug}';
+    url: '/api/v1/skills/{slug}';
 };
 
-export type GetApiV1SkillhubSkillsBySlugErrors = {
+export type GetApiV1SkillsBySlugErrors = {
     /**
      * Skill not found
      */
@@ -2963,29 +2944,118 @@ export type GetApiV1SkillhubSkillsBySlugErrors = {
     };
 };
 
-export type GetApiV1SkillhubSkillsBySlugError = GetApiV1SkillhubSkillsBySlugErrors[keyof GetApiV1SkillhubSkillsBySlugErrors];
+export type GetApiV1SkillsBySlugError = GetApiV1SkillsBySlugErrors[keyof GetApiV1SkillsBySlugErrors];
 
-export type GetApiV1SkillhubSkillsBySlugResponses = {
+export type GetApiV1SkillsBySlugResponses = {
     /**
-     * Skill detail with SKILL.md content
+     * Skill detail with tool auth status
      */
     200: {
         slug: string;
         name: string;
         description: string;
-        downloads: number;
-        stars: number;
-        tags: Array<string>;
-        version: string;
-        updatedAt: string;
-        homepage: string;
-        installed: boolean;
-        skillContent: string;
-        files: Array<string>;
+        longDescription?: string;
+        iconName: string;
+        iconUrl?: string;
+        fallbackIconUrl?: string;
+        prompt: string;
+        examples?: Array<string>;
+        tag: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+        source: 'official' | 'custom' | 'community';
+        tools?: Array<{
+            slug: string;
+            name: string;
+            provider: string;
+            iconUrl: string;
+            fallbackIconUrl: string;
+            authScheme: string;
+            status: 'connected' | 'not_connected' | 'initiated' | 'expired';
+            integrationId?: string;
+        }>;
+        githubUrl?: string;
+        relatedSkills?: Array<{
+            slug: string;
+            name: string;
+            description: string;
+            longDescription?: string;
+            iconName: string;
+            iconUrl?: string;
+            fallbackIconUrl?: string;
+            prompt: string;
+            examples?: Array<string>;
+            tag: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+            source: 'official' | 'custom' | 'community';
+            tools?: Array<{
+                slug: string;
+                name: string;
+                provider: string;
+                iconUrl: string;
+                fallbackIconUrl: string;
+            }>;
+            githubUrl?: string;
+            installed?: boolean;
+            updatable?: boolean;
+        }>;
     };
 };
 
-export type GetApiV1SkillhubSkillsBySlugResponse = GetApiV1SkillhubSkillsBySlugResponses[keyof GetApiV1SkillhubSkillsBySlugResponses];
+export type GetApiV1SkillsBySlugResponse = GetApiV1SkillsBySlugResponses[keyof GetApiV1SkillsBySlugResponses];
+
+export type GetApiV1SkillsFilesystemData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/skills/filesystem';
+};
+
+export type GetApiV1SkillsFilesystemErrors = {
+    /**
+     * Internal server error
+     */
+    500: {
+        message: string;
+    };
+};
+
+export type GetApiV1SkillsFilesystemError = GetApiV1SkillsFilesystemErrors[keyof GetApiV1SkillsFilesystemErrors];
+
+export type GetApiV1SkillsFilesystemResponses = {
+    /**
+     * Merged list of catalog and locally installed skills
+     */
+    200: {
+        skills: Array<{
+            slug: string;
+            name: string;
+            description: string;
+            longDescription?: string;
+            iconName: string;
+            iconUrl?: string;
+            fallbackIconUrl?: string;
+            prompt: string;
+            examples?: Array<string>;
+            tag: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+            source: 'official' | 'custom' | 'community';
+            tools?: Array<{
+                slug: string;
+                name: string;
+                provider: string;
+                iconUrl: string;
+                fallbackIconUrl: string;
+            }>;
+            githubUrl?: string;
+            installed?: boolean;
+            updatable?: boolean;
+        }>;
+        tags: Array<{
+            id: 'office-collab' | 'file-knowledge' | 'creative-design' | 'biz-analysis' | 'av-generation' | 'info-content' | 'dev-tools';
+            label: string;
+            count: number;
+        }>;
+    };
+};
+
+export type GetApiV1SkillsFilesystemResponse = GetApiV1SkillsFilesystemResponses[keyof GetApiV1SkillsFilesystemResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});

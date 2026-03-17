@@ -273,6 +273,8 @@ function SurfaceFrame({
           ref={webviewRefCallback as React.Ref<HTMLWebViewElement>}
           className="desktop-web-frame"
           key={`${src}:${version}`}
+          // @ts-expect-error Electron webview boolean attribute — must be empty string, not boolean
+          allowpopups=""
         />
       ) : (
         <div className="surface-frame-empty">
@@ -939,6 +941,16 @@ function DesktopShell() {
   useEffect(() => {
     void getRuntimeConfig()
       .then(setRuntimeConfig)
+      .catch(() => null);
+
+    // In packaged builds, default to web surface in immersive mode
+    void getAppInfo()
+      .then((info) => {
+        if (!info.isDev) {
+          setActiveSurface("web");
+          setChromeMode("immersive");
+        }
+      })
       .catch(() => null);
   }, []);
 
