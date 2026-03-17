@@ -250,6 +250,7 @@ function SurfaceFrame({
           className="desktop-web-frame"
           key={`${src}:${version}`}
           src={src}
+          allowpopups=""
         />
       ) : (
         <div className="surface-frame-empty">
