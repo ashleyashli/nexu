@@ -178,6 +178,19 @@ async function pollCloudForAuthorization(
           cloudModels,
         });
 
+        // Push config snapshot so gateway picks up the new link provider
+        try {
+          const [pool] = await db
+            .select({ id: gatewayPools.id })
+            .from(gatewayPools)
+            .where(eq(gatewayPools.poolName, "default"));
+          if (pool) {
+            await publishPoolConfigSnapshot(db, pool.id);
+          }
+        } catch (err) {
+          logger.error({ message: "cloud_reconnect_snapshot_failed", error: err });
+        }
+
         pollingState = null;
         return;
       }
@@ -523,7 +536,7 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
   });
 
   // Disconnect from cloud: clear credentials, cancel polling
-  app.openapi(cloudDisconnectRoute, (c) => {
+  app.openapi(cloudDisconnectRoute, async (c) => {
     // Cancel any active polling
     if (pollingState) {
       pollingState.abortController.abort();
@@ -531,6 +544,19 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
     }
 
     clearCredentials();
+
+    // Push config snapshot so gateway removes the link provider
+    try {
+      const [pool] = await db
+        .select({ id: gatewayPools.id })
+        .from(gatewayPools)
+        .where(eq(gatewayPools.poolName, "default"));
+      if (pool) {
+        await publishPoolConfigSnapshot(db, pool.id);
+      }
+    } catch (err) {
+      logger.error({ message: "cloud_disconnect_snapshot_failed", error: err });
+    }
 
     return c.json({ ok: true });
   });
