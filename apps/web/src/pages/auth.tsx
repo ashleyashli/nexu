@@ -755,7 +755,7 @@ export function AuthPage() {
             {/* Footer */}
             <div className="flex items-center justify-center gap-4 mt-6 text-[12px] text-text-muted">
               <a
-                href="/terms"
+                href="https://nexu.io/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-text-secondary transition-colors"
@@ -764,7 +764,7 @@ export function AuthPage() {
               </a>
               <span className="text-border select-none">&middot;</span>
               <a
-                href="/privacy"
+                href="https://nexu.io/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-text-secondary transition-colors"
