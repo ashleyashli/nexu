@@ -775,7 +775,6 @@ export function AuthPage() {
           </div>
         </div>
 
-
         {/* Footer */}
         <div
           className="flex items-center justify-center gap-3 px-4 sm:px-6 pt-3 pb-4 text-[11px] text-text-muted"
@@ -801,7 +800,6 @@ export function AuthPage() {
           <span className="text-border">&middot;</span>
           <span>{t("auth.copyright")}</span>
         </div>
-
       </div>
     </div>
   );
