@@ -153,7 +153,7 @@ status() {
 }
 
 logs() {
-  tmux capture-pane -pt "$SESSION_NAME":0 -S -200
+  tmux capture-pane -pt "$SESSION_NAME" -S -200
 }
 
 control() {
