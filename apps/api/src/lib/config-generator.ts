@@ -20,6 +20,7 @@ import {
 } from "../db/schema/index.js";
 import { decrypt } from "./crypto.js";
 import { ServiceError } from "./error.js";
+import { normalizeProviderBaseUrl } from "./provider-base-url.js";
 
 /**
  * Load cloud connection credentials (Link gateway) in desktop mode.
@@ -92,33 +93,14 @@ const byokDefaultBaseUrls: Record<string, string> = {
   google: "https://generativelanguage.googleapis.com/v1beta/openai",
 };
 
-function normalizeByokBaseUrl(
-  baseUrl: string | null | undefined,
-): string | null {
-  if (!baseUrl) {
-    return null;
-  }
-
-  const trimmed = baseUrl.trim();
-  if (trimmed.length === 0) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmed);
-    url.hash = "";
-    return url.toString().replace(/\/+$/u, "");
-  } catch {
-    return trimmed.replace(/\/+$/u, "");
-  }
-}
-
 function isByokProviderProxied(
   providerId: string,
   baseUrl: string | null,
 ): boolean {
-  const defaultBaseUrl = normalizeByokBaseUrl(byokDefaultBaseUrls[providerId]);
-  const normalizedBaseUrl = normalizeByokBaseUrl(baseUrl);
+  const defaultBaseUrl = normalizeProviderBaseUrl(
+    byokDefaultBaseUrls[providerId],
+  );
+  const normalizedBaseUrl = normalizeProviderBaseUrl(baseUrl);
 
   return Boolean(
     defaultBaseUrl && normalizedBaseUrl && normalizedBaseUrl !== defaultBaseUrl,
@@ -477,7 +459,7 @@ export async function generatePoolConfig(
                 provider: "openai",
                 model: "google/gemini-embedding-001",
                 remote: {
-                  baseUrl: "https://openrouter.ai/api/v1/",
+                  baseUrl: "https://openrouter.ai/api/v1",
                   apiKey: process.env.OPENROUTER_API_KEY,
                 },
                 sync: {
@@ -627,9 +609,9 @@ export async function generatePoolConfig(
 
   // Add BYOK (user-provided) providers (already loaded above for resolveModelId)
   for (const bp of byokProviders) {
-    const defaultBaseUrl = byokDefaultBaseUrls[bp.providerId];
-    const baseUrl =
-      normalizeByokBaseUrl(bp.baseUrl) ?? normalizeByokBaseUrl(defaultBaseUrl);
+    const baseUrl = normalizeProviderBaseUrl(
+      bp.baseUrl ?? byokDefaultBaseUrls[bp.providerId],
+    );
     const providerKey = getByokProviderKey({
       id: bp.id,
       providerId: bp.providerId,
