@@ -178,6 +178,9 @@ export async function generatePoolConfig(
       bp.providerId === "custom" ? `custom_${bp.id}` : bp.providerId,
     ),
   );
+  const customProviderKeys = byokProviders
+    .filter((bp) => bp.providerId === "custom")
+    .map((bp) => `custom_${bp.id}`);
 
   // Prefix model ID with provider namespace for routing.
   // Model IDs from the UI use the format "{provider}/{model}" — e.g.
@@ -187,6 +190,12 @@ export async function generatePoolConfig(
   function resolveModelId(rawModelId: string): string {
     if (rawModelId.startsWith("litellm/") || rawModelId.startsWith("link/"))
       return rawModelId;
+    if (rawModelId.startsWith("custom/")) {
+      const customModelId = rawModelId.slice("custom/".length);
+      if (customProviderKeys.length === 1) {
+        return `${customProviderKeys[0]}/${customModelId}`;
+      }
+    }
     // Check if prefix matches a BYOK provider — route to user's own key
     const slashIdx = rawModelId.indexOf("/");
     if (slashIdx > 0 && byokProviderKeys.has(rawModelId.substring(0, slashIdx)))
