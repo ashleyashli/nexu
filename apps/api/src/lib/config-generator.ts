@@ -173,24 +173,45 @@ export async function generatePoolConfig(
     .from(modelProviders)
     .where(eq(modelProviders.enabled, true));
 
-  const byokProviderKeys = new Set(
-    byokProviders.map((bp) =>
-      bp.providerId === "custom" ? `custom_${bp.id}` : bp.providerId,
-    ),
-  );
+  const byokDefaultBaseUrls: Record<string, string> = {
+    anthropic: "https://api.anthropic.com/v1",
+    openai: "https://api.openai.com/v1",
+    google: "https://generativelanguage.googleapis.com/v1beta/openai",
+  };
+
+  // Map provider ID prefix (e.g. "anthropic") → OpenClaw provider key
+  // For proxied providers the key is "byok_anthropic", for direct it's "anthropic"
+  const byokPrefixToKey = new Map<string, string>();
+  for (const bp of byokProviders) {
+    const defaultUrl = byokDefaultBaseUrls[bp.providerId];
+    const isProxied = bp.baseUrl != null && bp.baseUrl !== defaultUrl;
+    const key =
+      bp.providerId === "custom"
+        ? `custom_${bp.id}`
+        : isProxied
+          ? `byok_${bp.providerId}`
+          : bp.providerId;
+    byokPrefixToKey.set(bp.providerId, key);
+  }
 
   // Prefix model ID with provider namespace for routing.
   // Model IDs from the UI use the format "{provider}/{model}" — e.g.
   // "link/gemini-2.5-flash", "anthropic/claude-sonnet-4".
-  // If the provider prefix matches a BYOK provider configured by the user,
-  // keep it as-is so OpenClaw routes to the user's own API key.
+  // For proxied BYOK providers, remap to "byok_{provider}/{provider}/{model}"
+  // so OpenClaw strips "byok_{provider}/" and sends "{provider}/{model}" to the proxy.
   function resolveModelId(rawModelId: string): string {
     if (rawModelId.startsWith("litellm/") || rawModelId.startsWith("link/"))
       return rawModelId;
-    // Check if prefix matches a BYOK provider — route to user's own key
     const slashIdx = rawModelId.indexOf("/");
-    if (slashIdx > 0 && byokProviderKeys.has(rawModelId.substring(0, slashIdx)))
-      return rawModelId;
+    if (slashIdx > 0) {
+      const prefix = rawModelId.substring(0, slashIdx);
+      const byokKey = byokPrefixToKey.get(prefix);
+      if (byokKey) {
+        // Proxied: "anthropic/claude-sonnet-4" → "byok_anthropic/anthropic/claude-sonnet-4"
+        // Direct:  "anthropic/claude-sonnet-4" → "anthropic/claude-sonnet-4" (unchanged)
+        return byokKey === prefix ? rawModelId : `${byokKey}/${rawModelId}`;
+      }
+    }
     if (hasLitellm) return `litellm/${rawModelId}`;
     if (hasLink) return `link/${rawModelId}`;
     return rawModelId;
@@ -551,16 +572,19 @@ export async function generatePoolConfig(
   }
 
   // Add BYOK (user-provided) providers (already loaded above for resolveModelId)
-  const byokDefaultBaseUrls: Record<string, string> = {
-    anthropic: "https://api.anthropic.com/v1",
-    openai: "https://api.openai.com/v1",
-    google: "https://generativelanguage.googleapis.com/v1beta/openai",
-  };
-
   for (const bp of byokProviders) {
+    const defaultBaseUrl = byokDefaultBaseUrls[bp.providerId];
+    const baseUrl = bp.baseUrl ?? defaultBaseUrl;
+    // When routing through a proxy (non-default baseUrl like LiteLLM), use a
+    // prefixed provider key so OpenClaw preserves the full model ID including
+    // the provider name (e.g. "anthropic/claude-sonnet-4") instead of stripping it.
+    const isProxied = bp.baseUrl != null && bp.baseUrl !== defaultBaseUrl;
     const providerKey =
-      bp.providerId === "custom" ? `custom_${bp.id}` : bp.providerId;
-    const baseUrl = bp.baseUrl ?? byokDefaultBaseUrls[bp.providerId];
+      bp.providerId === "custom"
+        ? `custom_${bp.id}`
+        : isProxied
+          ? `byok_${bp.providerId}`
+          : bp.providerId;
     if (!baseUrl) continue;
 
     const modelIds: string[] = JSON.parse(bp.modelsJson || "[]");
