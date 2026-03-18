@@ -34,6 +34,10 @@ on:
         required: false
         type: string
         default: ""
+      build_source:
+        description: "Build source label embedded in desktop metadata"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -108,18 +112,33 @@ jobs:
           CLOUD_URL: ${{ inputs.cloud_url }}
           LINK_URL: ${{ inputs.link_url }}
           UPDATE_FEED_URL: ${{ inputs.update_feed_url }}
-          SENTRY_DSN: ${{ secrets.NEXU_DESKTOP_SENTRY_DSN }}
+          BUILD_SOURCE: ${{ inputs.build_source }}
+          BUILD_BRANCH: ${{ github.ref_name }}
+          BUILD_COMMIT: ${{ github.sha }}
+          SENTRY_DSN_TEST: ${{ secrets.SENTRY_DSN_NEXU_DESKTOP_TEST }}
+          SENTRY_DSN_PROD: ${{ secrets.SENTRY_DSN_NEXU_DESKTOP_PROD }}
+          TARGET_ENVIRONMENT: ${{ inputs.environment }}
         run: |
+          export BUILT_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
           node -e '
+            const sentryDsnByEnvironment = {
+              test: process.env.SENTRY_DSN_TEST,
+              prod: process.env.SENTRY_DSN_PROD,
+            };
+            const sentryDsn = sentryDsnByEnvironment[process.env.TARGET_ENVIRONMENT] ?? "";
             const config = {
               NEXU_CLOUD_URL: process.env.CLOUD_URL,
               NEXU_LINK_URL: process.env.LINK_URL === "null" ? null : process.env.LINK_URL,
+              NEXU_DESKTOP_BUILD_SOURCE: process.env.BUILD_SOURCE,
+              NEXU_DESKTOP_BUILD_BRANCH: process.env.BUILD_BRANCH,
+              NEXU_DESKTOP_BUILD_COMMIT: process.env.BUILD_COMMIT,
+              NEXU_DESKTOP_BUILD_TIME: process.env.BUILT_AT,
             };
             if (process.env.UPDATE_FEED_URL) {
               config.NEXU_UPDATE_FEED_URL = process.env.UPDATE_FEED_URL;
             }
-            if (process.env.SENTRY_DSN) {
-              config.NEXU_DESKTOP_SENTRY_DSN = process.env.SENTRY_DSN;
+            if (sentryDsn) {
+              config.NEXU_DESKTOP_SENTRY_DSN = sentryDsn;
             }
             require("fs").writeFileSync(
               "apps/desktop/build-config.json",
@@ -138,6 +157,7 @@ jobs:
         run: pnpm --filter @nexu/desktop dist:mac
 
       - name: Prepare artifacts
+        id: artifacts
         shell: bash
         env:
           SUFFIX: ${{ inputs.artifact_suffix }}
@@ -156,6 +176,9 @@ jobs:
             exit 1
           fi
 
+          dmg_basename=$(basename "${dmg_files[0]}")
+          zip_basename=$(basename "${zip_files[0]}")
+
           cp "${dmg_files[0]}" "apps/desktop/nightly-artifacts/Nexu-nightly${SUFFIX}-arm64.dmg"
           cp "${zip_files[0]}" "apps/desktop/nightly-artifacts/Nexu-nightly${SUFFIX}-arm64.zip"
 
@@ -163,6 +186,11 @@ jobs:
             "apps/desktop/nightly-artifacts/Nexu-nightly${SUFFIX}-arm64.dmg" \
             "apps/desktop/nightly-artifacts/Nexu-nightly${SUFFIX}-arm64.zip" \
             > apps/desktop/nightly-artifacts/desktop-sha256.txt
+
+          {
+            echo "dmg_basename=$dmg_basename"
+            echo "zip_basename=$zip_basename"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
@@ -222,6 +250,33 @@ jobs:
             echo "Uploading $file → $key"
             npx wrangler r2 object put "nexu-desktop-releases/${key}" --file "$file" --remote
           done
+
+      - name: Publish Cloudflare download links
+        if: inputs.update_feed_url != ''
+        env:
+          UPDATE_FEED_URL: ${{ inputs.update_feed_url }}
+          DMG_BASENAME: ${{ steps.artifacts.outputs.dmg_basename }}
+          ZIP_BASENAME: ${{ steps.artifacts.outputs.zip_basename }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_url="${UPDATE_FEED_URL%/}"
+          latest_yml_url="${base_url}/latest-mac.yml"
+          dmg_url="${base_url}/${DMG_BASENAME}"
+          zip_url="${base_url}/${ZIP_BASENAME}"
+
+          {
+            echo "## Cloudflare Downloads"
+            echo
+            echo "- DMG: ${dmg_url}"
+            echo "- ZIP: ${zip_url}"
+            echo "- Update feed: ${latest_yml_url}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Cloudflare DMG: ${dmg_url}"
+          echo "Cloudflare ZIP: ${zip_url}"
+          echo "Cloudflare update feed: ${latest_yml_url}"
 
   cleanup-artifacts:
     runs-on: ubuntu-latest

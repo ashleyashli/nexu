@@ -61,6 +61,62 @@ if (rendererSentryDsn) {
   initializeRendererSentry(rendererSentryDsn);
 }
 
+function maskSentryDsn(dsn: string | null | undefined): string {
+  if (!dsn) {
+    return "missing";
+  }
+
+  const match = dsn.match(/^(https?:\/\/)([^@]+)@(.+)$/);
+
+  if (!match) {
+    return "configured";
+  }
+
+  const [, protocol, publicKey, hostAndPath] = match;
+  const visibleKey = publicKey.slice(-6);
+  const maskedKey = `${"*".repeat(Math.max(publicKey.length - 6, 3))}${visibleKey}`;
+
+  return `${protocol}${maskedKey}@${hostAndPath}`;
+}
+
+function formatBuildTimestamp(value: string | null | undefined): string {
+  if (!value) {
+    return "(unknown)";
+  }
+
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    return value;
+  }
+
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const timezoneOffsetMinutes = -date.getTimezoneOffset();
+  const offsetSign = timezoneOffsetMinutes >= 0 ? "+" : "-";
+  const offsetHours = String(
+    Math.floor(Math.abs(timezoneOffsetMinutes) / 60),
+  ).padStart(2, "0");
+  const offsetMinutes = String(Math.abs(timezoneOffsetMinutes) % 60).padStart(
+    2,
+    "0",
+  );
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+}
+
+function formatBuildCommit(value: string | null | undefined): string {
+  if (!value) {
+    return "(unknown)";
+  }
+
+  return value.slice(0, 7);
+}
+
 if (amplitudeApiKey) {
   amplitude.initAll(amplitudeApiKey, {
     analytics: { autocapture: true },
@@ -211,12 +267,14 @@ function SurfaceButton({
 function SummaryCard({
   label,
   value,
+  className,
 }: {
   label: string;
   value: string | number;
+  className?: string;
 }) {
   return (
-    <div>
+    <div className={className}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
@@ -848,10 +906,6 @@ function DiagnosticsPage() {
           value={appInfo ? (appInfo.isDev ? "development" : "packaged") : "-"}
         />
         <SummaryCard
-          label="Crash dumps"
-          value={diagnosticsInfo?.crashDumpsPath ?? "-"}
-        />
-        <SummaryCard
           label="Native crashes"
           value={
             diagnosticsInfo
@@ -862,23 +916,15 @@ function DiagnosticsPage() {
           }
         />
         <SummaryCard
-          label="Sentry main"
-          value={
-            diagnosticsInfo
-              ? diagnosticsInfo.sentryMainEnabled
-                ? "enabled"
-                : "off"
-              : "-"
-          }
+          label="Crash dumps"
+          className="diagnostics-summary-wide"
+          value={diagnosticsInfo?.crashDumpsPath ?? "-"}
         />
         <SummaryCard
-          label="Sentry renderer"
+          label="Sentry DSN"
+          className="diagnostics-summary-wide"
           value={
-            diagnosticsInfo
-              ? diagnosticsInfo.sentryMainEnabled
-                ? "enabled"
-                : "off"
-              : "-"
+            diagnosticsInfo ? maskSentryDsn(diagnosticsInfo.sentryDsn) : "-"
           }
         />
       </section>
@@ -1059,8 +1105,30 @@ function DesktopShell() {
 
         {runtimeConfig ? (
           <div className="desktop-sidebar-config">
-            <span className="desktop-shell-eyebrow">Build Config</span>
+            <span className="desktop-shell-eyebrow">Build Info</span>
             <dl className="desktop-config-list">
+              <div>
+                <dt>Source</dt>
+                <dd>{runtimeConfig.buildInfo.source}</dd>
+              </div>
+              <div>
+                <dt>Version</dt>
+                <dd>{runtimeConfig.buildInfo.version}</dd>
+              </div>
+              <div>
+                <dt>Branch</dt>
+                <dd>{runtimeConfig.buildInfo.branch ?? "(unknown)"}</dd>
+              </div>
+              <div>
+                <dt>Commit</dt>
+                <dd title={runtimeConfig.buildInfo.commit ?? undefined}>
+                  {formatBuildCommit(runtimeConfig.buildInfo.commit)}
+                </dd>
+              </div>
+              <div>
+                <dt>Built At</dt>
+                <dd>{formatBuildTimestamp(runtimeConfig.buildInfo.builtAt)}</dd>
+              </div>
               <div>
                 <dt>Cloud</dt>
                 <dd>{runtimeConfig.urls.nexuCloud}</dd>
