@@ -231,8 +231,8 @@
   padding: 7px 10px;
   border-radius: var(--radius-6);
   font-size: 13px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
+  font-weight: 500;
+  color: var(--color-text-primary);
   background: transparent;
   transition: background 0.15s ease, color 0.15s ease;
   cursor: pointer;
@@ -248,7 +248,7 @@
 .nav-item-active {
   background: rgba(0, 0, 0, 0.08);
   color: var(--color-text-primary);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -320,6 +320,20 @@
 
 .animate-scale-in {
   animation: scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

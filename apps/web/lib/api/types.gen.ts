@@ -500,6 +500,29 @@ export type PutApiInternalDesktopDefaultModelResponses = {
 
 export type PutApiInternalDesktopDefaultModelResponse = PutApiInternalDesktopDefaultModelResponses[keyof PutApiInternalDesktopDefaultModelResponses];
 
+export type GetApiInternalDesktopReadyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/internal/desktop/ready';
+};
+
+export type GetApiInternalDesktopReadyResponses = {
+    /**
+     * Runtime readiness and health status
+     */
+    200: {
+        ready: boolean;
+        runtime: {
+            ok: boolean;
+            status: number | null;
+        };
+        status: 'active' | 'degraded' | 'unhealthy';
+    };
+};
+
+export type GetApiInternalDesktopReadyResponse = GetApiInternalDesktopReadyResponses[keyof GetApiInternalDesktopReadyResponses];
+
 export type GetApiV1ChannelsData = {
     body?: never;
     path?: never;

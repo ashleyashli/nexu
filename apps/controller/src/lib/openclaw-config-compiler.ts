@@ -219,6 +219,10 @@ function resolveModelId(config: NexuConfig, rawModelId: string): string {
     const byokKey = byokPrefixToKey.get(prefix);
     const openclawProviderId = byokPrefixToProvider.get(prefix);
     if (byokKey && openclawProviderId) {
+      // Custom provider: model entry ID is bare modelSuffix (no provider prefix)
+      if (byokKey.startsWith("custom_")) {
+        return `${byokKey}/${modelSuffix}`;
+      }
       const providerScopedModelId = `${openclawProviderId}/${modelSuffix}`;
       return byokKey === openclawProviderId
         ? providerScopedModelId

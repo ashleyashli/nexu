@@ -1,4 +1,5 @@
 import { BrandMark } from "@/components/brand-mark";
+import { useAutoUpdate } from "@/hooks/use-auto-update";
 import { useCommunitySkills } from "@/hooks/use-community-catalog";
 import { type Locale, useLocale } from "@/hooks/use-locale";
 import { authClient } from "@/lib/auth-client";
@@ -172,6 +173,14 @@ function WorkspaceLayoutInner() {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
+  const update = useAutoUpdate();
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const hasUpdate =
+    update.phase === "available" ||
+    update.phase === "downloading" ||
+    update.phase === "ready";
+  const updating = update.phase === "downloading";
+  const downloadProgress = Math.round(update.percent);
   const logoutRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -306,29 +315,39 @@ function WorkspaceLayoutInner() {
         </button>
       )}
 
-      {/* Desktop sidebar — frosted glass + fully hidden when collapsed */}
+      {/* Desktop sidebar — transparent bg, no border (matches prototype) */}
       <div
-        className="hidden md:flex flex-col shrink-0 border-r border-border bg-surface-1 overflow-hidden"
+        className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
           width: collapsed ? 0 : 224,
-          borderRightWidth: collapsed ? 0 : 1,
-          transition: "width 200ms ease, border-right-width 200ms ease",
+          transition: "width 200ms ease",
         }}
       >
         {/* Header / Brand */}
         <div
           className={cn(
-            "flex items-center px-3 pb-2 shrink-0",
+            "flex items-center justify-between px-3 pb-2 shrink-0",
             isDesktopClient && "pt-14",
             !isDesktopClient && "border-b border-border py-3 px-4 gap-2.5",
           )}
         >
           {isDesktopClient ? (
-            <img
-              src="/brand/logo-black-1.svg"
-              alt="Nexu"
-              className="h-6 object-contain"
-            />
+            <>
+              <img
+                src="/brand/logo-black-1.svg"
+                alt="Nexu"
+                className="h-6 object-contain"
+              />
+              {hasUpdate && updateDismissed && (
+                <button
+                  type="button"
+                  onClick={() => setUpdateDismissed(false)}
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold bg-[var(--color-brand-primary)] text-white hover:opacity-85 transition-opacity"
+                >
+                  {t("layout.update.badge")}
+                </button>
+              )}
+            </>
           ) : (
             <>
               <BrandMark className="w-7 h-7 shrink-0" />
@@ -429,6 +448,82 @@ function WorkspaceLayoutInner() {
             </div>
           </div>
         </div>
+
+        {/* Update banner */}
+        {hasUpdate && !updateDismissed && (
+          <div className="mx-3 mb-2 px-3 py-2.5 rounded-[10px] border border-border bg-surface-0/80 backdrop-blur-sm shrink-0 animate-float">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success)] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-success)]" />
+                </span>
+                <span className="text-[12px] font-medium text-text-primary whitespace-nowrap">
+                  {updating
+                    ? t("layout.update.downloading")
+                    : update.phase === "ready"
+                      ? t("layout.update.readyToInstall")
+                      : t("layout.update.available", {
+                          version: update.version ?? "",
+                        })}
+                </span>
+              </div>
+              {!updating && update.phase !== "ready" && (
+                <button
+                  type="button"
+                  onClick={() => setUpdateDismissed(true)}
+                  className="text-text-muted hover:text-text-primary transition-colors -mr-1"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            {updating && (
+              <div className="flex items-center justify-between pl-4 mb-1">
+                <span className="text-[10px] tabular-nums text-text-muted">
+                  {downloadProgress}%
+                </span>
+              </div>
+            )}
+            {updating ? (
+              <div className="pl-4 pr-1">
+                <div className="h-[6px] w-full rounded-full bg-border overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--color-brand-primary)] transition-all duration-300 ease-out"
+                    style={{ width: `${downloadProgress}%` }}
+                  />
+                </div>
+              </div>
+            ) : update.phase === "ready" ? (
+              <div className="flex items-center gap-2 pl-4">
+                <button
+                  type="button"
+                  onClick={() => update.install()}
+                  className="rounded-[6px] px-2.5 py-0.5 text-[11px] font-medium bg-[var(--color-accent)] text-white hover:opacity-85 transition-opacity"
+                >
+                  {t("layout.update.install")}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-4">
+                <button
+                  type="button"
+                  onClick={() => update.download()}
+                  className="rounded-[6px] px-2.5 py-0.5 text-[11px] font-medium bg-[var(--color-accent)] text-white hover:opacity-85 transition-opacity"
+                >
+                  {t("layout.update.download")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUpdateDismissed(true)}
+                  className="rounded-[6px] px-2 py-0.5 text-[11px] font-medium text-text-muted hover:text-text-primary transition-colors"
+                >
+                  {t("layout.update.later")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Icon row — Help & GitHub */}
         <div className="px-3 pb-1.5 flex items-center gap-1 shrink-0">
@@ -761,8 +856,8 @@ function WorkspaceLayoutInner() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 bg-surface-0 flex flex-col">
+      {/* Main content — elevated surface with rounded left edge */}
+      <div className="flex-1 min-w-0 bg-surface-1 rounded-l-[12px] flex flex-col">
         <div className="md:hidden sticky top-0 z-30 border-b border-border bg-surface-0/95 backdrop-blur px-3 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <button

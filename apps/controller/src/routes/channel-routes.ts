@@ -270,4 +270,47 @@ export function registerChannelRoutes(
       );
     },
   );
+
+  // Channel readiness (queries OpenClaw gateway status)
+  const channelReadinessResponseSchema = z.object({
+    ready: z.boolean(),
+    connected: z.boolean(),
+    running: z.boolean(),
+    configured: z.boolean(),
+    lastError: z.string().nullable(),
+    gatewayConnected: z.boolean(),
+  });
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/v1/channels/{channelId}/readiness",
+      tags: ["Channels"],
+      request: { params: channelIdParamSchema },
+      responses: {
+        200: {
+          content: {
+            "application/json": { schema: channelReadinessResponseSchema },
+          },
+          description: "Channel readiness status from OpenClaw gateway",
+        },
+        404: {
+          content: { "application/json": { schema: errorSchema } },
+          description: "Channel not found",
+        },
+      },
+    }),
+    async (c) => {
+      const { channelId } = c.req.valid("param");
+      const channel = await container.channelService.getChannel(channelId);
+      if (!channel) {
+        return c.json({ message: "Channel not found" }, 404);
+      }
+      const readiness = await container.gatewayService.getChannelReadiness(
+        channel.channelType,
+        channel.accountId,
+      );
+      return c.json(readiness, 200);
+    },
+  );
 }

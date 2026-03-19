@@ -2,13 +2,15 @@ import { ChannelConnectModal } from "@/components/channel-connect-modal";
 import { InlineModelSelector } from "@/components/inline-model-selector";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import "@/lib/api";
 import {
   deleteApiV1ChannelsByChannelId,
+  getApiInternalDesktopReady,
   getApiV1Channels,
+  getApiV1ChannelsByChannelIdReadiness,
   getApiV1Sessions,
 } from "../../lib/api/sdk.gen";
 
@@ -146,10 +148,185 @@ export function HomePage() {
 
   const CHANNEL_OPTIONS = useMemo(() => getChannelOptions(t), [t]);
 
+  // Runtime health status (polls every 5s)
+  const { data: runtimeData } = useQuery({
+    queryKey: ["runtime-ready"],
+    queryFn: async () => {
+      const { data } = await getApiInternalDesktopReady();
+      return data;
+    },
+    refetchInterval: 5000,
+  });
+
+  const runtimeDisplay = useMemo(() => {
+    if (!runtimeData) {
+      // Still loading — show starting
+      return {
+        label: t("home.status.starting"),
+        color: "var(--color-warning)",
+        pulse: true,
+      } as const;
+    }
+    switch (runtimeData.status) {
+      case "active":
+        return {
+          label: t("home.running"),
+          color: "var(--color-success)",
+          pulse: false,
+        } as const;
+      case "degraded":
+        return {
+          label: t("home.status.degraded"),
+          color: "var(--color-warning)",
+          pulse: true,
+        } as const;
+      case "unhealthy":
+        return {
+          label: t("home.status.offline"),
+          color: "var(--color-danger)",
+          pulse: true,
+        } as const;
+      default:
+        return {
+          label: t("home.status.starting"),
+          color: "var(--color-warning)",
+          pulse: true,
+        } as const;
+    }
+  }, [runtimeData, t]);
+
+  // Idle scene status (no channels)
+  const idleDisplay = useMemo(() => {
+    if (!runtimeData) {
+      return {
+        label: t("home.status.starting"),
+        subtitle: t("home.status.subtitle.starting"),
+        color: "var(--color-warning)",
+        pulse: true,
+      } as const;
+    }
+    switch (runtimeData.status) {
+      case "active":
+        return {
+          label: t("home.status.ready"),
+          subtitle: t("home.status.subtitle.idle"),
+          color: "var(--color-success)",
+          pulse: false,
+        } as const;
+      case "degraded":
+        return {
+          label: t("home.status.degraded"),
+          subtitle: t("home.status.subtitle.degraded"),
+          color: "var(--color-warning)",
+          pulse: true,
+        } as const;
+      case "unhealthy":
+        return {
+          label: t("home.status.offline"),
+          subtitle: t("home.status.subtitle.offline"),
+          color: "var(--color-danger)",
+          pulse: true,
+        } as const;
+      default:
+        return {
+          label: t("home.status.starting"),
+          subtitle: t("home.status.subtitle.starting"),
+          color: "var(--color-warning)",
+          pulse: true,
+        } as const;
+    }
+  }, [runtimeData, t]);
+
+  // Per-channel readiness state
+  const [channelReadiness, setChannelReadiness] = useState<
+    Record<string, "checking" | "ready" | "connecting" | "error">
+  >({});
+
   const handleConnected = async () => {
     await queryClient.refetchQueries({ queryKey: ["channels"] });
     setModalChannel(null);
   };
+
+  // -- Channel readiness polling --
+  const readinessPollingRef = useRef<{
+    channelId: string;
+    timer: ReturnType<typeof setInterval>;
+  } | null>(null);
+
+  const startReadinessPolling = useCallback(
+    (channelId: string, channelType?: string) => {
+      if (readinessPollingRef.current) {
+        clearInterval(readinessPollingRef.current.timer);
+      }
+      // Set initial checking state
+      if (channelType) {
+        setChannelReadiness((prev) => ({ ...prev, [channelType]: "checking" }));
+      }
+      const toastId = toast.loading(t("home.channel.phase.connecting"));
+      let attempts = 0;
+      const timer = setInterval(async () => {
+        attempts++;
+        const elapsedMs = attempts * 2000;
+        try {
+          const { data } = await getApiV1ChannelsByChannelIdReadiness({
+            path: { channelId },
+          });
+          if (data?.ready) {
+            clearInterval(timer);
+            readinessPollingRef.current = null;
+            toast.success(t("home.channel.phase.done"), { id: toastId });
+            if (channelType) {
+              setChannelReadiness((prev) => ({
+                ...prev,
+                [channelType]: "ready",
+              }));
+            }
+            return;
+          }
+          // Time-based progressive toast (backend phases flip too fast)
+          if (elapsedMs <= 3000) {
+            toast.loading(t("home.channel.phase.connecting"), { id: toastId });
+          } else if (elapsedMs <= 8000) {
+            toast.loading(t("home.channel.phase.configuring"), {
+              id: toastId,
+            });
+          } else {
+            toast.loading(t("home.channel.phase.almostReady"), {
+              id: toastId,
+            });
+          }
+          if (channelType) {
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [channelType]: data?.gatewayConnected ? "connecting" : "checking",
+            }));
+          }
+          if (attempts >= 15) {
+            clearInterval(timer);
+            readinessPollingRef.current = null;
+            if (!data?.ready) {
+              toast.warning(t("home.channel.readinessTimeout"), {
+                id: toastId,
+              });
+            }
+          }
+        } catch {
+          // keep trying
+        }
+      }, 2000);
+      readinessPollingRef.current = { channelId, timer };
+    },
+    [t],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup only
+  useEffect(() => {
+    return () => {
+      if (readinessPollingRef.current) {
+        clearInterval(readinessPollingRef.current.timer);
+      }
+    };
+  }, []);
 
   const disconnectChannel = useMutation({
     mutationFn: async (channelId: string) => {
@@ -205,6 +382,77 @@ export function HomePage() {
   const hasChannel = connectedCount > 0;
   const connectedTypes = new Set<string>(channels.map((c) => c.channelType));
 
+  // Poll readiness for existing channels on mount
+  const initialCheckDone = useRef(false);
+  const initialPollTimers = useRef<ReturnType<typeof setInterval>[]>([]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: channels triggers initial check
+  useEffect(() => {
+    if (channelsLoading || channels.length === 0 || initialCheckDone.current)
+      return;
+    initialCheckDone.current = true;
+    for (const ch of channels) {
+      setChannelReadiness((prev) => ({
+        ...prev,
+        [ch.channelType]: "checking",
+      }));
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const { data } = await getApiV1ChannelsByChannelIdReadiness({
+            path: { channelId: ch.id },
+          });
+          if (data?.ready) {
+            clearInterval(poll);
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "ready",
+            }));
+          } else if (attempts >= 1) {
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]:
+                prev[ch.channelType] === "ready" ? "ready" : "connecting",
+            }));
+          }
+        } catch {
+          /* keep polling */
+        }
+        if (attempts >= 15) clearInterval(poll);
+      }, 2000);
+      // Immediate first check
+      (async () => {
+        try {
+          const { data } = await getApiV1ChannelsByChannelIdReadiness({
+            path: { channelId: ch.id },
+          });
+          if (data?.ready) {
+            clearInterval(poll);
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "ready",
+            }));
+          } else {
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "connecting",
+            }));
+          }
+        } catch {
+          setChannelReadiness((prev) => ({
+            ...prev,
+            [ch.channelType]: "connecting",
+          }));
+        }
+      })();
+      initialPollTimers.current.push(poll);
+    }
+    return () => {
+      for (const t of initialPollTimers.current) clearInterval(t);
+      initialPollTimers.current = [];
+    };
+  }, [channelsLoading, channels]);
+
   // Video playback effects — reset when channel state changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: hasChannel triggers reset intentionally
   useEffect(() => {
@@ -248,7 +496,7 @@ export function HomePage() {
             >
               <video
                 ref={videoRef}
-                src="https://static.refly.ai/video/nexu-alpha.mp4"
+                src="/nexu-alpha.mp4"
                 poster="/nexu-alpha-poster.jpg"
                 preload="auto"
                 autoPlay
@@ -264,11 +512,20 @@ export function HomePage() {
               nexu alpha
             </h2>
             <div className="flex items-center gap-3 text-[11px] text-text-muted">
-              <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[var(--color-warning)]/10 text-[var(--color-warning)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)] animate-pulse" />
-                Idle
+              <span
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${idleDisplay.color} 10%, transparent)`,
+                  color: idleDisplay.color,
+                }}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${idleDisplay.pulse ? "animate-pulse" : ""}`}
+                  style={{ backgroundColor: idleDisplay.color }}
+                />
+                {idleDisplay.label}
               </span>
-              <span>Waiting for activation</span>
+              <span>{idleDisplay.subtitle}</span>
             </div>
 
             {/* Speech bubble — minimal pill */}
@@ -329,6 +586,9 @@ export function HomePage() {
             channelType={modalChannel}
             onClose={() => setModalChannel(null)}
             onConnected={handleConnected}
+            onStartReadinessPolling={(channelId) =>
+              startReadinessPolling(channelId, modalChannel)
+            }
           />
         )}
       </div>
@@ -350,7 +610,7 @@ export function HomePage() {
           >
             <video
               ref={videoRef}
-              src="https://static.refly.ai/video/nexu-alpha.mp4"
+              src="/nexu-alpha.mp4"
               poster="/nexu-alpha-poster.jpg"
               preload="auto"
               autoPlay
@@ -367,9 +627,18 @@ export function HomePage() {
               >
                 nexu alpha
               </h2>
-              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[var(--color-success)]/10 text-[var(--color-success)] text-[10px] font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
-                {t("home.running")}
+              <span
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${runtimeDisplay.color} 10%, transparent)`,
+                  color: runtimeDisplay.color,
+                }}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${runtimeDisplay.pulse ? "animate-pulse" : ""}`}
+                  style={{ backgroundColor: runtimeDisplay.color }}
+                />
+                {runtimeDisplay.label}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1.5">
@@ -434,7 +703,17 @@ export function HomePage() {
                           <span className="text-[13px] font-semibold text-text-primary">
                             {ch.name}
                           </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] shrink-0" />
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              channelReadiness[ch.id] === "ready"
+                                ? "bg-[var(--color-success)]"
+                                : channelReadiness[ch.id] === "connecting"
+                                  ? "bg-[var(--color-warning)] animate-pulse"
+                                  : channelReadiness[ch.id] === "checking"
+                                    ? "bg-text-muted/30 animate-pulse"
+                                    : "bg-[var(--color-success)]"
+                            }`}
+                          />
                         </div>
                         <button
                           type="button"
@@ -447,7 +726,11 @@ export function HomePage() {
                           disabled={disconnectChannel.isPending}
                           className="rounded-[8px] px-[14px] py-[5px] text-[12px] font-medium bg-surface-2 text-text-secondary hover:text-[var(--color-danger)] hover:bg-surface-3 transition-colors shrink-0 disabled:opacity-50"
                         >
-                          {t("home.connected")}
+                          {channelReadiness[ch.id] === "checking"
+                            ? t("home.checking")
+                            : channelReadiness[ch.id] === "connecting"
+                              ? t("home.channelConnecting")
+                              : t("home.connected")}
                         </button>
                         <a
                           href={channelChatUrl}
@@ -504,6 +787,9 @@ export function HomePage() {
           channelType={modalChannel}
           onClose={() => setModalChannel(null)}
           onConnected={handleConnected}
+          onStartReadinessPolling={(channelId) =>
+            startReadinessPolling(channelId, modalChannel)
+          }
         />
       )}
     </div>
