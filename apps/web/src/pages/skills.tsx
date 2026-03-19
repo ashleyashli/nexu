@@ -195,6 +195,7 @@ export function SkillsPage() {
     setShowPillFadeLeft(hasOverflow && el.scrollLeft > 2);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: topTab triggers re-check on tab switch
   useEffect(() => {
     checkPillOverflow();
     window.addEventListener("resize", checkPillOverflow);
@@ -270,7 +271,8 @@ export function SkillsPage() {
     return list;
   }, [baseSkills, activeTag, debouncedQuery]);
 
-  // Reset visible count when filters change
+  // Reset visible count when filters change — deps are intentional triggers
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deps trigger reset on filter change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [debouncedQuery, activeTag, topTab, yoursSubTab]);
