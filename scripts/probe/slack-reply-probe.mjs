@@ -164,6 +164,27 @@ function formatBoolean(value) {
   return value ? "yes" : "no";
 }
 
+function logInfo(message) {
+  console.log(`[probe][info] ${message}`);
+}
+
+function logDebug(message) {
+  console.log(`[probe][debug] ${message}`);
+}
+
+function logError(message) {
+  console.error(`[probe][error] ${message}`);
+}
+
+function printResult(status, message) {
+  const normalizedStatus = status.toUpperCase();
+  logInfo(`result=${status}`);
+  logInfo(`===== ${normalizedStatus} =====`);
+  if (message) {
+    logInfo(message);
+  }
+}
+
 async function launchProbeBrowser(options) {
   requireSlackUrl(options.slackUrl);
 
@@ -189,14 +210,14 @@ async function launchProbeBrowser(options) {
 
   child.unref();
 
-  console.log("[probe] mode=prepare");
-  console.log(`[probe] canaryBinary=${options.canaryBinary}`);
-  console.log(`[probe] profileDir=${options.profileDir}`);
-  console.log(`[probe] connectUrl=${options.connectUrl}`);
-  console.log(`[probe] targetUrl=${options.slackUrl}`);
-  console.log("[probe] Chrome Canary launched.");
-  console.log(
-    "[probe] If this is the first run, log into Slack in that Canary window, then rerun `pnpm probe:slack run`.",
+  logInfo("mode=prepare");
+  logDebug(`canaryBinary=${options.canaryBinary}`);
+  logDebug(`profileDir=${options.profileDir}`);
+  logDebug(`connectUrl=${options.connectUrl}`);
+  logInfo(`targetUrl=${options.slackUrl}`);
+  logInfo("Chrome Canary launched.");
+  logInfo(
+    "If this is the first run, log into Slack in that Canary window, then rerun `pnpm probe:slack run`.",
   );
 }
 
@@ -450,37 +471,29 @@ async function withConnectedPage(options, fn) {
       options.pageTimeoutMs,
     );
 
-    console.log(`[probe] mode=${options.mode}`);
-    console.log(`[probe] connectUrl=${options.connectUrl}`);
-    console.log(`[probe] profileDir=${options.profileDir}`);
-    console.log(`[probe] targetUrl=${options.slackUrl}`);
-    console.log(`[probe] currentUrl=${session.currentUrl}`);
-    console.log(`[probe] title=${session.title}`);
-    console.log(
-      `[probe] authenticated=${formatBoolean(session.looksAuthenticated)}`,
-    );
-    console.log(
-      `[probe] redirectedToSignIn=${formatBoolean(session.redirectedToSignIn)}`,
-    );
-    console.log(
-      `[probe] loadErrorVisible=${formatBoolean(session.loadErrorVisible)}`,
-    );
-    console.log(
-      `[probe] composerVisible=${formatBoolean(session.composerVisible)}`,
-    );
-    console.log(
-      `[probe] workspaceShellVisible=${formatBoolean(session.workspaceShellVisible)}`,
+    logInfo(`mode=${options.mode}`);
+    logInfo(`targetUrl=${options.slackUrl}`);
+    logDebug(`connectUrl=${options.connectUrl}`);
+    logDebug(`profileDir=${options.profileDir}`);
+    logDebug(`currentUrl=${session.currentUrl}`);
+    logDebug(`title=${session.title}`);
+    logDebug(`authenticated=${formatBoolean(session.looksAuthenticated)}`);
+    logDebug(`redirectedToSignIn=${formatBoolean(session.redirectedToSignIn)}`);
+    logDebug(`loadErrorVisible=${formatBoolean(session.loadErrorVisible)}`);
+    logDebug(`composerVisible=${formatBoolean(session.composerVisible)}`);
+    logDebug(
+      `workspaceShellVisible=${formatBoolean(session.workspaceShellVisible)}`,
     );
 
-    if (session.bodyPreview.length > 0) {
-      console.log(`[probe] bodyPreview=${session.bodyPreview}`);
+    if (!session.looksAuthenticated && session.bodyPreview.length > 0) {
+      logDebug(`bodyPreview=${session.bodyPreview}`);
     }
 
     if (!session.looksAuthenticated) {
-      console.log(
-        "[probe] Slack is not ready in Chrome Canary. Run `pnpm probe:slack prepare`, log into Slack in Canary if needed, then rerun.",
+      printResult(
+        "not-ready",
+        "Slack is not ready in Chrome Canary. Run `pnpm probe:slack prepare`, log into Slack in Canary if needed, then rerun.",
       );
-      console.log("[probe] result=not-ready");
       process.exitCode = 2;
       return;
     }
@@ -496,14 +509,14 @@ async function runProbe(options) {
     const message = options.message ?? createProbeMessage();
     const beforeCount = await getVisibleMessageContainerCount(page);
 
-    console.log(`[probe] sendMessage=${message}`);
-    console.log(`[probe] messageCountBefore=${beforeCount}`);
+    logInfo(`sendMessage=${message}`);
+    logDebug(`messageCountBefore=${beforeCount}`);
 
     await sendProbeMessage(page, message);
     const ownMessageState = await waitForOwnMessage(page, message, 15000);
 
-    console.log(`[probe] ownMessageCount=${ownMessageState.count}`);
-    console.log(`[probe] ownLastMessage=${ownMessageState.lastMessageText}`);
+    logDebug(`ownMessageCount=${ownMessageState.count}`);
+    logDebug(`ownLastMessage=${ownMessageState.lastMessageText}`);
 
     const reply = await waitForReplyAfterOwnMessage(
       page,
@@ -513,36 +526,32 @@ async function runProbe(options) {
       options.replyTimeoutMs,
     );
 
-    console.log(`[probe] messageCountAfter=${reply.afterCount}`);
-    console.log(`[probe] latestMessage=${reply.text}`);
-    console.log("[probe] result=pass");
-    console.log("[probe] observed a new Slack reply after sending the probe.");
+    logDebug(`messageCountAfter=${reply.afterCount}`);
+    logInfo(`latestMessage=${reply.text}`);
+    printResult("pass", "Observed a new Slack reply after sending the probe.");
   });
 }
 
 async function runSessionCheck(options) {
   await withConnectedPage(options, async () => {
-    console.log("[probe] result=pass");
-    console.log("[probe] Slack page looks ready.");
+    printResult("pass", "Slack page looks ready.");
   });
 }
 
 async function runInspect(options) {
   await withConnectedPage(options, async (page) => {
     const diagnostics = await inspectSlackDm(page);
-    console.log(
-      `[probe] pageSnapshot=${JSON.stringify(diagnostics.pageSnapshot)}`,
+    logDebug(`pageSnapshot=${JSON.stringify(diagnostics.pageSnapshot)}`);
+    logDebug(
+      `composerDiagnostics=${JSON.stringify(diagnostics.composerDiagnostics)}`,
     );
-    console.log(
-      `[probe] composerDiagnostics=${JSON.stringify(diagnostics.composerDiagnostics)}`,
+    logDebug(
+      `messageDiagnostics=${JSON.stringify(diagnostics.messageDiagnostics)}`,
     );
-    console.log(
-      `[probe] messageDiagnostics=${JSON.stringify(diagnostics.messageDiagnostics)}`,
+    logDebug(
+      `sendButtonDiagnostics=${JSON.stringify(diagnostics.sendButtonDiagnostics)}`,
     );
-    console.log(
-      `[probe] sendButtonDiagnostics=${JSON.stringify(diagnostics.sendButtonDiagnostics)}`,
-    );
-    console.log("[probe] result=pass");
+    printResult("pass", "Selector diagnostics collected.");
   });
 }
 
@@ -579,12 +588,13 @@ main()
     process.exit(process.exitCode ?? 0);
   })
   .catch((error) => {
-    console.error("[probe] failed");
+    logError("failed");
     if (error instanceof Error) {
-      console.error(error.message);
+      logError(error.message);
     } else {
-      console.error(String(error));
+      logError(String(error));
     }
-    console.error("[probe] result=fail");
+    logError("result=fail");
+    logError("===== FAIL =====");
     process.exit(1);
   });
