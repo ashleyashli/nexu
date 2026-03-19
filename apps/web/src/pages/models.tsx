@@ -1288,7 +1288,7 @@ function ManagedProviderDetail({
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [loginBusy, queryClient, provider.models, onAutoSelectModel]);
+  }, [loginBusy, queryClient]);
 
   const handleLogin = async () => {
     setLoginBusy(true);
