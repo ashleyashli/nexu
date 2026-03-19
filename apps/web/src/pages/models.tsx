@@ -1707,6 +1707,61 @@ function ByokProviderDetail({
         </div>
       </div>
 
+      {/* Action buttons — moved before model list for visibility */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          type="button"
+          disabled={
+            saveMutation.isPending || (!apiKey && !dbProvider?.hasApiKey)
+          }
+          onClick={() => saveMutation.mutate()}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium transition-colors",
+            !saveMutation.isPending && (apiKey || dbProvider?.hasApiKey)
+              ? "bg-accent text-white hover:bg-accent/90"
+              : "bg-surface-2 text-text-muted cursor-not-allowed",
+          )}
+        >
+          {saveMutation.isPending && (
+            <Loader2 size={13} className="animate-spin" />
+          )}
+          {dbProvider?.hasApiKey
+            ? t("models.byok.updateConfig")
+            : t("models.byok.saveAndEnable")}
+        </button>
+
+        {dbProvider?.hasApiKey && (
+          <button
+            type="button"
+            disabled={deleteMutation.isPending}
+            onClick={() => {
+              if (confirm(t("models.byok.confirmRemove"))) {
+                deleteMutation.mutate();
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium text-red-500 hover:bg-red-500/5 transition-colors"
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 size={13} className="animate-spin" />
+            ) : (
+              <Trash2 size={13} />
+            )}
+            {t("models.byok.remove")}
+          </button>
+        )}
+      </div>
+
+      {saveMutation.isSuccess && (
+        <div className="mb-4 text-[11px] text-emerald-600">
+          {t("models.byok.saveSuccess")}
+        </div>
+      )}
+      {saveMutation.isError && (
+        <div className="mb-4 text-[11px] text-red-500">
+          {t("models.byok.saveFailed")}
+        </div>
+      )}
+
       {/* Model list — read-only */}
       <div>
         <div className="text-[13px] font-semibold text-text-primary mb-3">
@@ -1754,61 +1809,6 @@ function ByokProviderDetail({
           })}
         </div>
       </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-3 mt-6">
-        <button
-          type="button"
-          disabled={
-            saveMutation.isPending || (!apiKey && !dbProvider?.hasApiKey)
-          }
-          onClick={() => saveMutation.mutate()}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium transition-colors",
-            !saveMutation.isPending && (apiKey || dbProvider?.hasApiKey)
-              ? "bg-accent text-white hover:bg-accent/90"
-              : "bg-surface-2 text-text-muted cursor-not-allowed",
-          )}
-        >
-          {saveMutation.isPending && (
-            <Loader2 size={13} className="animate-spin" />
-          )}
-          {dbProvider?.hasApiKey
-            ? t("models.byok.updateConfig")
-            : t("models.byok.saveAndEnable")}
-        </button>
-
-        {dbProvider?.hasApiKey && (
-          <button
-            type="button"
-            disabled={deleteMutation.isPending}
-            onClick={() => {
-              if (confirm(t("models.byok.confirmRemove"))) {
-                deleteMutation.mutate();
-              }
-            }}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium text-red-500 hover:bg-red-500/5 transition-colors"
-          >
-            {deleteMutation.isPending ? (
-              <Loader2 size={13} className="animate-spin" />
-            ) : (
-              <Trash2 size={13} />
-            )}
-            {t("models.byok.remove")}
-          </button>
-        )}
-      </div>
-
-      {saveMutation.isSuccess && (
-        <div className="mt-3 text-[11px] text-emerald-600">
-          {t("models.byok.saveSuccess")}
-        </div>
-      )}
-      {saveMutation.isError && (
-        <div className="mt-3 text-[11px] text-red-500">
-          {t("models.byok.saveFailed")}
-        </div>
-      )}
     </div>
   );
 }
