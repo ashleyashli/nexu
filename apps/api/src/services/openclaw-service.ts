@@ -12,8 +12,6 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import type { OpenClawConfig } from "@nexu/shared";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error -- ws has no bundled types; we only use .OPEN, .send, .close, .on
 import WebSocket from "ws";
 import { logger } from "../lib/logger.js";
 
@@ -191,7 +189,7 @@ export class OpenClawWsClient {
         timer,
       });
 
-      this.ws!.send(JSON.stringify(frame));
+      this.ws?.send(JSON.stringify(frame));
     });
   }
 

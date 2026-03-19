@@ -319,7 +319,6 @@ export function HomePage() {
     [t],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup only
   useEffect(() => {
     return () => {
       if (readinessPollingRef.current) {
@@ -385,7 +384,6 @@ export function HomePage() {
   // Poll readiness for existing channels on mount
   const initialCheckDone = useRef(false);
   const initialPollTimers = useRef<ReturnType<typeof setInterval>[]>([]);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: channels triggers initial check
   useEffect(() => {
     if (channelsLoading || channels.length === 0 || initialCheckDone.current)
       return;

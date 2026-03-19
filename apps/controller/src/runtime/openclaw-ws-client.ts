@@ -284,7 +284,7 @@ export class OpenClawWsClient {
         timer,
       });
 
-      this.ws!.send(JSON.stringify(frame));
+      this.ws?.send(JSON.stringify(frame));
     });
   }
 
