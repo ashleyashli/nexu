@@ -33,7 +33,7 @@ async function preparePgliteSidecar() {
 
   await writeFile(
     resolve(sidecarRoot, "index.js"),
-    `import { readdir, readFile } from "node:fs/promises";
+    `import { readdir, readFile, rename, unlink, stat, mkdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
@@ -47,6 +47,17 @@ if (!dataDir) {
   throw new Error("PGLITE_DATA_DIR is required.");
 }
 
+// Clean up stale postmaster.pid left behind by crashes / force-quit.
+// PGlite uses a virtual PID so we can always safely remove it on startup.
+const pidPath = join(dataDir, "postmaster.pid");
+try {
+  await stat(pidPath);
+  await unlink(pidPath);
+  console.log(JSON.stringify({ event: "pglite_stale_pid_removed", pidPath }));
+} catch {
+  // File doesn't exist — nothing to clean up
+}
+
 console.log(
   JSON.stringify({
     event: "pglite_boot",
@@ -57,7 +68,34 @@ console.log(
   })
 );
 
-const db = await PGlite.create({ dataDir });
+// Try to open PGlite; if the data directory is corrupted (e.g. from a crash),
+// move it aside and start fresh so the desktop app can self-heal.
+let db;
+try {
+  db = await PGlite.create({ dataDir });
+} catch (initError) {
+  const backupPath = dataDir + ".corrupted-" + Date.now();
+  // TODO: report this corruption event to telemetry so we can track frequency and root causes
+  console.error(JSON.stringify({
+    event: "pglite_data_corrupted",
+    error: initError?.message ?? String(initError),
+    backupPath,
+  }));
+  try {
+    await rename(dataDir, backupPath);
+  } catch {
+    // rename failed — directory may already be gone
+  }
+  await mkdir(dataDir, { recursive: true });
+  db = await PGlite.create({ dataDir });
+  console.log(JSON.stringify({
+    event: "pglite_recovered_fresh_start",
+    userNotice: true,
+    title: "Local database reset",
+    message: "The local database was corrupted due to an unexpected shutdown and has been automatically reset. Your previous data has been backed up. Cloud-synced data (channels, bots) will be restored automatically. You may need to reconfigure local-only settings.",
+    backupPath,
+  }));
+}
 
 async function runMigrations() {
   if (!migrationsDir) {

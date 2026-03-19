@@ -5,6 +5,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -68,7 +69,12 @@ function ensurePgliteDataDir(runtimeRoot: string): string {
   const existingVersion = readPgliteStateVersion(runtimeRoot);
 
   if (existingVersion !== PGLITE_STATE_VERSION) {
-    resetDir(pgliteDataPath);
+    // Rename old data directory as backup instead of deleting it
+    if (existsSync(pgliteDataPath)) {
+      const backupPath = `${pgliteDataPath}.backup-${Date.now()}`;
+      renameSync(pgliteDataPath, backupPath);
+    }
+    mkdirSync(pgliteDataPath, { recursive: true });
     writePgliteStateVersion(runtimeRoot, PGLITE_STATE_VERSION);
     return pgliteDataPath;
   }

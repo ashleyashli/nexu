@@ -1568,6 +1568,42 @@ export type GetApiV1ChannelsByChannelIdStatusResponses = {
 
 export type GetApiV1ChannelsByChannelIdStatusResponse = GetApiV1ChannelsByChannelIdStatusResponses[keyof GetApiV1ChannelsByChannelIdStatusResponses];
 
+export type GetApiV1ChannelsByChannelIdReadinessData = {
+    body?: never;
+    path: {
+        channelId: string;
+    };
+    query?: never;
+    url: '/api/v1/channels/{channelId}/readiness';
+};
+
+export type GetApiV1ChannelsByChannelIdReadinessErrors = {
+    /**
+     * Not found
+     */
+    404: {
+        message: string;
+    };
+};
+
+export type GetApiV1ChannelsByChannelIdReadinessError = GetApiV1ChannelsByChannelIdReadinessErrors[keyof GetApiV1ChannelsByChannelIdReadinessErrors];
+
+export type GetApiV1ChannelsByChannelIdReadinessResponses = {
+    /**
+     * Channel readiness status from OpenClaw gateway
+     */
+    200: {
+        ready: boolean;
+        connected: boolean;
+        running: boolean;
+        configured: boolean;
+        lastError: string | null;
+        gatewayConnected: boolean;
+    };
+};
+
+export type GetApiV1ChannelsByChannelIdReadinessResponse = GetApiV1ChannelsByChannelIdReadinessResponses[keyof GetApiV1ChannelsByChannelIdReadinessResponses];
+
 export type PostApiV1InviteValidateData = {
     body?: {
         code: string;
