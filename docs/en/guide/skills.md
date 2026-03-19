@@ -1,46 +1,39 @@
 # Skill Installation
 
-Nexu uses a file-based skill system. The runtime loads skills from `.openclaw/skills/`.
+Skills extend what your Agent can do — from web search and document generation to Feishu spreadsheet operations and third-party API calls. Installing a skill takes seconds.
 
-## Core idea
+## Step 1: Open Skills
 
-- The GitHub catalog is the source for official skills.
-- Installed skills live on disk in `.openclaw/skills/`.
-- OpenClaw watches that directory and hot-loads updates.
+Click **Skills** in the left sidebar of the nexu client.
 
-## Install flow
+You'll see the **Community** tab with the public skill catalog, and the **Installed** tab showing what's already active on your Agent.
 
-1. Find the skill in the Nexu catalog.
-2. Install it through the Nexu UI or CLI flow.
-3. Confirm the skill folder appears under `.openclaw/skills/<skill-name>/`.
-4. Wait for the gateway watcher to refresh.
-5. Test the skill with a simple prompt.
+<img src="/assets/nexu-skills.png" alt="Nexu skills catalog" class="doc-img" />
 
-## Directory layout
+## Step 2: Find a skill
 
-```text
-.openclaw/
-  skills/
-    feishu-bitable/
-      SKILL.md
-      references/
-```
+Browse the catalog by category tag — `automation`, `ai`, `finance`, `api`, and more — or use the search bar to find a specific skill by name or keyword.
 
-## What a skill contains
+Each card shows the skill name, a short description, download count, and star rating to help you evaluate it quickly.
 
-- `SKILL.md` with frontmatter metadata
-- Optional reference documents bundled with the skill
-- Required tool or plugin declarations in frontmatter
+## Step 3: Install
 
-## Operational notes
+Click **Install** on any skill card. The skill is downloaded and loaded into your Agent automatically — no restart required.
 
-- Local and desktop runtimes both use `.openclaw/skills/` as the default install target.
-- `OPENCLAW_SKILLS_DIR` can override the default location when needed.
-- Skills should be written atomically to avoid the watcher loading half-finished content.
-- Local-only skills can coexist with skills synced from the public catalog.
+## Step 4: Verify
 
-## After installing
+Switch to the **Installed** tab to confirm the skill is active. You can now use it by mentioning its capabilities in a chat message to your Agent.
 
-- Refresh the skill catalog in the app if the UI is stale.
-- Check gateway logs if the skill does not appear.
-- Keep skill metadata in `SKILL.md` as the single source of truth.
+## FAQ
+
+**Q: Do I need to restart the Agent after installing a skill?**
+
+No. Skills are hot-loaded — your Agent picks them up immediately without any restart.
+
+**Q: Can I install skills from outside the community catalog?**
+
+Yes. nexu also supports local custom skills for specialized needs. See the developer documentation for details.
+
+**Q: How do I remove a skill?**
+
+Go to the **Installed** tab and click **Uninstall** next to the skill you want to remove.

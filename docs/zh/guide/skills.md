@@ -1,46 +1,39 @@
 # 技能安装
 
-Nexu 使用基于文件系统的技能机制，运行时默认从 `.openclaw/skills/` 加载技能。
+技能扩展了 Agent 的能力边界——从网络搜索、文档生成，到飞书多维表格操作、第三方 API 调用，应有尽有。安装一个技能只需几秒钟。
 
-## 核心思路
+## 第一步：打开技能页面
 
-- 官方技能目录来自 GitHub catalog。
-- 已安装技能保存在本地 `.openclaw/skills/`。
-- OpenClaw 会监听这个目录并自动热加载变更。
+在 nexu 客户端左侧导航栏点击 **Skills**。
 
-## 安装流程
+页面分为两个标签：**Community**（公共技能目录）和 **Installed**（已安装的技能）。
 
-1. 在 Nexu 技能目录中找到目标技能。
-2. 通过 Nexu UI 或 CLI 安装。
-3. 确认 `.openclaw/skills/<skill-name>/` 已生成对应目录。
-4. 等待 gateway watcher 刷新。
-5. 用一条简单提示词测试技能是否生效。
+<img src="/assets/nexu-skills.png" alt="Nexu 技能目录" class="doc-img" />
 
-## 目录结构
+## 第二步：找到目标技能
 
-```text
-.openclaw/
-  skills/
-    feishu-bitable/
-      SKILL.md
-      references/
-```
+通过分类标签快速筛选——`automation`、`ai`、`finance`、`api` 等——或直接在搜索框输入技能名称或关键词。
 
-## 一个技能通常包含
+每张技能卡片显示技能名称、简短描述、下载量和星级，方便快速评估。
 
-- 带 frontmatter 的 `SKILL.md`
-- 可选的参考文档
-- frontmatter 中声明的工具或插件依赖
+## 第三步：安装
 
-## 运维说明
+点击技能卡片上的 **Install** 按钮，技能会自动下载并加载到 Agent 中，无需重启。
 
-- 本地运行时和桌面运行时都默认使用 `.openclaw/skills/` 作为安装目标。
-- 如有需要，可通过 `OPENCLAW_SKILLS_DIR` 覆盖默认路径。
-- 安装写入应尽量原子化，避免 watcher 读取到半成品。
-- 本地私有技能可以与公共 catalog 同时存在。
+## 第四步：确认已安装
 
-## 安装后检查
+切换到 **Installed** 标签，确认技能已激活。之后在与 Agent 的对话中，直接描述相关需求即可调用该技能。
 
-- 如果 UI 没刷新，先手动刷新技能目录。
-- 如果技能没有出现，检查 gateway 日志。
-- 保持 `SKILL.md` 中的 metadata 为单一事实来源。
+## 常见问题
+
+**Q: 安装技能后需要重启 Agent 吗？**
+
+不需要。技能支持热加载，Agent 会立即识别并启用新安装的技能。
+
+**Q: 可以安装社区目录以外的技能吗？**
+
+可以。nexu 支持本地自定义技能，满足个性化需求。详见开发者文档。
+
+**Q: 如何卸载技能？**
+
+进入 **Installed** 标签，点击对应技能旁边的 **Uninstall** 即可。
