@@ -142,9 +142,10 @@ export function InlineModelSelector() {
     () => new Set(currentGroupKey ? [currentGroupKey] : []),
   );
 
-  // Expand current model's provider when opened
+  // Expand current model's provider only when dropdown opens (not on refetch)
+  const prevOpenRef = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
       const groupKey = currentModel ? getGroupKey(currentModel) : "";
       setExpandedProviders(
         new Set(
@@ -156,6 +157,7 @@ export function InlineModelSelector() {
         ),
       );
     }
+    prevOpenRef.current = open;
   }, [open, currentModel, modelsByProvider]);
 
   const query = search.toLowerCase().trim();
