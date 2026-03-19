@@ -18,8 +18,8 @@ import { toast } from "sonner";
 import "@/lib/api";
 import {
   deleteApiV1ChannelsByChannelId,
-  getApiV1ChannelsByChannelIdReadiness,
   getApiV1Channels,
+  getApiV1ChannelsByChannelIdReadiness,
   getApiV1Sessions,
 } from "../../lib/api/sdk.gen";
 
@@ -246,6 +246,18 @@ export function HomePage() {
 
   const handleConnected = async () => {
     await queryClient.refetchQueries({ queryKey: ["channels"] });
+    // Mark newly connected channels as "checking" until readiness polling resolves
+    const updated = queryClient.getQueryData<{
+      channels?: Array<{ channelType: string }>;
+    }>(["channels"]);
+    if (updated?.channels) {
+      for (const ch of updated.channels) {
+        setChannelReadiness((prev) => ({
+          ...prev,
+          [ch.channelType]: prev[ch.channelType] ?? "checking",
+        }));
+      }
+    }
   };
 
   const handleDisconnect = async (channelId: string) => {
@@ -378,6 +390,94 @@ export function HomePage() {
   const channels = channelsData?.channels ?? [];
   const connectedCount = channels.length;
   const connectedTypes = new Set<string>(channels.map((c) => c.channelType));
+
+  // Per-channel readiness state: "checking" | "ready" | "connecting" | "error"
+  const [channelReadiness, setChannelReadiness] = useState<
+    Record<string, "checking" | "ready" | "connecting" | "error">
+  >({});
+  const initialCheckDone = useRef(false);
+  const initialPollTimers = useRef<ReturnType<typeof setInterval>[]>([]);
+
+  // Poll readiness for all existing channels on mount until ready
+  useEffect(() => {
+    if (channelsLoading || channels.length === 0 || initialCheckDone.current)
+      return;
+    initialCheckDone.current = true;
+
+    for (const ch of channels) {
+      setChannelReadiness((prev) => ({
+        ...prev,
+        [ch.channelType]: "checking",
+      }));
+
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const { data } = await getApiV1ChannelsByChannelIdReadiness({
+            path: { channelId: ch.id },
+          });
+          if (data?.ready) {
+            clearInterval(poll);
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "ready",
+            }));
+          } else if (attempts >= 1) {
+            // After first check, show "connecting" instead of "checking"
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]:
+                prev[ch.channelType] === "ready" ? "ready" : "connecting",
+            }));
+          }
+        } catch {
+          // keep polling
+        }
+        if (attempts >= 15) {
+          clearInterval(poll);
+          setChannelReadiness((prev) => ({
+            ...prev,
+            [ch.channelType]:
+              prev[ch.channelType] === "ready" ? "ready" : "ready",
+          }));
+        }
+      }, 2000);
+
+      // Fire first check immediately
+      (async () => {
+        try {
+          const { data } = await getApiV1ChannelsByChannelIdReadiness({
+            path: { channelId: ch.id },
+          });
+          if (data?.ready) {
+            clearInterval(poll);
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "ready",
+            }));
+          } else {
+            setChannelReadiness((prev) => ({
+              ...prev,
+              [ch.channelType]: "connecting",
+            }));
+          }
+        } catch {
+          setChannelReadiness((prev) => ({
+            ...prev,
+            [ch.channelType]: "connecting",
+          }));
+        }
+      })();
+
+      initialPollTimers.current.push(poll);
+    }
+
+    return () => {
+      for (const t of initialPollTimers.current) clearInterval(t);
+      initialPollTimers.current = [];
+    };
+  }, [channelsLoading, channels]);
   const connectedChannelIds = useMemo(
     () => channels.map((c) => c.id),
     [channels],
@@ -540,7 +640,11 @@ export function HomePage() {
                               {channelsLoading
                                 ? t("home.loading")
                                 : isConnected
-                                  ? t("home.connected")
+                                  ? channelReadiness[ch.id] === "checking"
+                                    ? t("home.checking")
+                                    : channelReadiness[ch.id] === "connecting"
+                                      ? t("home.channelConnecting")
+                                      : t("home.connected")
                                   : t("home.notConnected")}
                             </div>
                           </div>

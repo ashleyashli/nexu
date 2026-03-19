@@ -110,6 +110,7 @@ export type PutApiInternalDesktopDefaultModelResponses = {
     200: {
         ok: boolean;
         modelId: string;
+        configPushed: boolean;
     };
 };
 
@@ -1597,7 +1598,7 @@ export type GetApiV1ChannelsByChannelIdReadinessResponses = {
         connected: boolean;
         running: boolean;
         configured: boolean;
-        lastError: string | null;
+        lastError: string;
         gatewayConnected: boolean;
     };
 };
@@ -1773,6 +1774,27 @@ export type PostApiV1ProvidersByProviderIdVerifyResponses = {
 };
 
 export type PostApiV1ProvidersByProviderIdVerifyResponse = PostApiV1ProvidersByProviderIdVerifyResponses[keyof PostApiV1ProvidersByProviderIdVerifyResponses];
+
+export type PostApiV1ProvidersByProviderIdRefreshModelsData = {
+    body?: never;
+    path: {
+        providerId: string;
+    };
+    query?: never;
+    url: '/api/v1/providers/{providerId}/refresh-models';
+};
+
+export type PostApiV1ProvidersByProviderIdRefreshModelsResponses = {
+    /**
+     * Refreshed model list
+     */
+    200: {
+        models: Array<string>;
+        error?: string;
+    };
+};
+
+export type PostApiV1ProvidersByProviderIdRefreshModelsResponse = PostApiV1ProvidersByProviderIdRefreshModelsResponses[keyof PostApiV1ProvidersByProviderIdRefreshModelsResponses];
 
 export type GetApiV1LinkCatalogData = {
     body?: never;
@@ -3434,5 +3456,5 @@ export type GetApiV1SkillhubSkillsBySlugResponses = {
 export type GetApiV1SkillhubSkillsBySlugResponse = GetApiV1SkillhubSkillsBySlugResponses[keyof GetApiV1SkillhubSkillsBySlugResponses];
 
 export type ClientOptions = {
-    baseUrl: `${string}://${string}` | (string & {});
+    baseUrl: `${string}://apps` | (string & {});
 };

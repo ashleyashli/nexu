@@ -296,7 +296,11 @@ const defaultModelSetRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: z.object({ ok: z.boolean(), modelId: z.string() }),
+          schema: z.object({
+            ok: z.boolean(),
+            modelId: z.string(),
+            configPushed: z.boolean(),
+          }),
         },
       },
       description: "Default model set",
@@ -509,19 +513,21 @@ export function registerDesktopLocalRoutes(app: OpenAPIHono<AppBindings>) {
     }
 
     // Trigger config snapshot so gateway picks up the change
+    let configPushed = false;
     try {
       const [pool] = await db
         .select({ id: gatewayPools.id })
         .from(gatewayPools)
         .where(eq(gatewayPools.poolName, "default"));
       if (pool) {
-        await publishPoolConfigSnapshot(db, pool.id);
+        const snapshot = await publishPoolConfigSnapshot(db, pool.id);
+        configPushed = snapshot.configPushed ?? false;
       }
     } catch (err) {
       logger.error({ message: "default_model_snapshot_failed", error: err });
     }
 
-    return c.json({ ok: true, modelId: body.modelId });
+    return c.json({ ok: true, modelId: body.modelId, configPushed });
   });
 
   // Get current default model

@@ -102,14 +102,19 @@ export function InlineModelSelector() {
   const updateModel = useMutation({
     mutationFn: async (modelId: string) => {
       const toastId = toast.loading(t("models.switchingModel"));
-      const { error } = await putApiInternalDesktopDefaultModel({
+      const { data, error } = await putApiInternalDesktopDefaultModel({
         body: { modelId },
       });
       if (error) {
         toast.error(t("models.modelSwitchFailed"), { id: toastId });
         throw new Error("Failed to update model");
       }
-      toast.success(t("models.modelSwitched"), { id: toastId });
+      const synced = (data as { configPushed?: boolean })?.configPushed;
+      if (synced) {
+        toast.success(t("models.modelSwitchedAndSynced"), { id: toastId });
+      } else {
+        toast.warning(t("models.modelSwitchedSyncFailed"), { id: toastId });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["desktop-default-model"] });

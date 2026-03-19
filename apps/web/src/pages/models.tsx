@@ -31,6 +31,7 @@ import {
   patchApiV1Me,
   postApiInternalDesktopCloudConnect,
   postApiInternalDesktopCloudDisconnect,
+  postApiV1ProvidersByProviderIdRefreshModels,
   postApiV1ProvidersByProviderIdVerify,
   putApiInternalDesktopDefaultModel,
   putApiV1ProvidersByProviderId,
@@ -114,16 +115,15 @@ const PROVIDER_META: Record<
   },
 };
 
-// Well-known models per provider (shown when no verify result yet)
-const DEFAULT_MODELS: Record<string, string[]> = {
-  anthropic: [
-    "claude-opus-4-20250514",
-    "claude-sonnet-4-20250514",
-    "claude-haiku-4-5-20251001",
-  ],
-  openai: ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini"],
-  google: ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
-};
+async function refreshProviderModels(
+  providerId: string,
+): Promise<{ models: string[]; error?: string }> {
+  const { data, error } = await postApiV1ProvidersByProviderIdRefreshModels({
+    path: { providerId },
+  });
+  if (error || !data) return { models: [], error: "Request failed" };
+  return { models: data.models ?? [], error: data.error ?? undefined };
+}
 
 const GITHUB_URL = "https://github.com/nexu-io/nexu";
 
@@ -1491,8 +1491,9 @@ function ByokProviderDetail({
     !dbProvider?.hasApiKey,
   );
 
-  // Available models from verification
+  // Available models from verification or auto-refresh
   const [verifiedModels, setVerifiedModels] = useState<string[] | null>(null);
+  const [modelsRefreshing, setModelsRefreshing] = useState(false);
 
   // Reset form when provider changes
   useEffect(() => {
@@ -1501,6 +1502,26 @@ function ByokProviderDetail({
     setIsEditingApiKey(!dbProvider?.hasApiKey);
     setVerifiedModels(null);
   }, [dbProvider, meta.defaultProxyUrl]);
+
+  // Auto-fetch models from provider when API key is saved
+  const autoRefreshDone = useRef(false);
+  useEffect(() => {
+    if (!dbProvider?.hasApiKey || autoRefreshDone.current) return;
+    autoRefreshDone.current = true;
+    setModelsRefreshing(true);
+    refreshProviderModels(providerId)
+      .then((result) => {
+        if (result.models.length > 0) {
+          setVerifiedModels(result.models);
+        }
+      })
+      .finally(() => setModelsRefreshing(false));
+  }, [dbProvider?.hasApiKey, providerId]);
+
+  // Reset auto-refresh flag when provider changes
+  useEffect(() => {
+    autoRefreshDone.current = false;
+  }, [providerId]);
 
   // ── Verify mutation ──────────────────────────────────
   const verifyMutation = useMutation({
@@ -1524,15 +1545,23 @@ function ByokProviderDetail({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["providers"] });
-      queryClient.invalidateQueries({ queryKey: ["models"] });
       setApiKey("");
       setIsEditingApiKey(false);
       markSetupComplete();
-      // Auto-select first model if no model is currently selected
-      const firstModel = displayModels[0];
-      if (firstModel) {
-        onAutoSelectModel(firstModel);
-      }
+      // Fetch fresh models from provider after saving credentials
+      setModelsRefreshing(true);
+      refreshProviderModels(providerId)
+        .then((result) => {
+          if (result.models.length > 0) {
+            setVerifiedModels(result.models);
+            const firstModel = result.models[0];
+            if (firstModel) onAutoSelectModel(firstModel);
+          }
+        })
+        .finally(() => {
+          setModelsRefreshing(false);
+          queryClient.invalidateQueries({ queryKey: ["models"] });
+        });
     },
   });
 
@@ -1549,13 +1578,12 @@ function ByokProviderDetail({
     },
   });
 
-  // Model list to show: verified > DB stored > defaults
+  // Model list to show: verified/refreshed > DB stored
   const displayModels = useMemo(() => {
     if (verifiedModels && verifiedModels.length > 0) return verifiedModels;
     const stored: string[] = JSON.parse(dbProvider?.modelsJson ?? "[]");
-    if (stored.length > 0) return stored;
-    return DEFAULT_MODELS[providerId] ?? [];
-  }, [verifiedModels, dbProvider, providerId]);
+    return stored;
+  }, [verifiedModels, dbProvider]);
 
   return (
     <div>
@@ -1686,18 +1714,55 @@ function ByokProviderDetail({
         </div>
       </div>
 
-      {/* Model list — read-only */}
+      {/* Model list */}
       <div>
-        <div className="text-[13px] font-semibold text-text-primary mb-3">
-          {t("models.byok.modelList")}
-          <span className="ml-2 text-[11px] font-normal text-text-muted">
-            {t("models.byok.modelsTotalCount", { count: displayModels.length })}
-          </span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[13px] font-semibold text-text-primary">
+            {t("models.byok.modelList")}
+            <span className="ml-2 text-[11px] font-normal text-text-muted">
+              {t("models.byok.modelsTotalCount", {
+                count: displayModels.length,
+              })}
+            </span>
+          </div>
+          {dbProvider?.hasApiKey && (
+            <button
+              type="button"
+              disabled={modelsRefreshing}
+              onClick={() => {
+                setModelsRefreshing(true);
+                refreshProviderModels(providerId)
+                  .then((result) => {
+                    if (result.models.length > 0) {
+                      setVerifiedModels(result.models);
+                      queryClient.invalidateQueries({ queryKey: ["models"] });
+                    } else if (result.error) {
+                      toast.error(result.error);
+                    }
+                  })
+                  .finally(() => setModelsRefreshing(false));
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors"
+            >
+              <RefreshCw
+                size={11}
+                className={modelsRefreshing ? "animate-spin" : ""}
+              />
+              {t("models.byok.refreshModels")}
+            </button>
+          )}
         </div>
         <div className="space-y-1.5">
           {displayModels.length === 0 && (
-            <div className="text-[11px] text-text-muted/60 py-3 text-center">
-              {t("models.byok.none")}
+            <div className="text-[11px] text-text-muted/60 py-3 text-center flex items-center justify-center gap-2">
+              {modelsRefreshing ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  {t("models.byok.fetchingModels")}
+                </>
+              ) : (
+                t("models.byok.none")
+              )}
             </div>
           )}
           {displayModels.map((modelId) => {
