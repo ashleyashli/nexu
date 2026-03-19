@@ -30,11 +30,7 @@ describe("desktop runtime manifests", () => {
         "/opt/custom/node_modules",
       ].join(path.delimiter);
 
-      const result = buildSkillNodePath(
-        "/repo/apps/desktop",
-        false,
-        inherited,
-      );
+      const result = buildSkillNodePath("/repo/apps/desktop", false, inherited);
 
       expect(result).toBe(
         [
