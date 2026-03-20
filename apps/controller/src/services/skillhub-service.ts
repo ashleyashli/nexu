@@ -3,38 +3,52 @@ import { CatalogManager } from "./skillhub/catalog-manager.js";
 import { SkillDb } from "./skillhub/skill-db.js";
 
 export class SkillhubService {
-  private readonly catalogManager: CatalogManager;
+  private catalogManager: CatalogManager | null = null;
+  private initPromise: Promise<void> | null = null;
 
-  constructor(env: ControllerEnv) {
-    let skillDb: SkillDb | undefined;
-    try {
-      skillDb = new SkillDb(env.skillDbPath);
-    } catch {
-      // SQLite native addon may fail — degrade gracefully
-    }
+  constructor(private readonly env: ControllerEnv) {}
 
-    this.catalogManager = new CatalogManager(env.skillhubCacheDir, {
-      skillsDir: env.openclawSkillsDir,
-      curatedSkillsDir: env.openclawCuratedSkillsDir,
-      staticSkillsDir: env.staticSkillsDir,
+  start(): void {
+    this.initPromise = this.init();
+    this.initPromise.catch((err) => {
+      console.error("[skillhub] init failed:", err);
+    });
+  }
+
+  private async init(): Promise<void> {
+    const skillDb = await SkillDb.create(this.env.skillDbPath);
+
+    this.catalogManager = new CatalogManager(this.env.skillhubCacheDir, {
+      skillsDir: this.env.openclawSkillsDir,
+      curatedSkillsDir: this.env.openclawCuratedSkillsDir,
+      staticSkillsDir: this.env.staticSkillsDir,
       skillDb,
       log: (level, message) => {
         console[level === "error" ? "error" : "log"](`[skillhub] ${message}`);
       },
     });
-  }
 
-  start(): void {
     this.catalogManager.start();
-    if (process.env.CI) return;
-    void this.catalogManager.installCuratedSkills().catch(() => {});
+    if (!process.env.CI) {
+      await this.catalogManager.installCuratedSkills();
+      this.catalogManager.reconcileDbWithDisk();
+    }
   }
 
   get catalog(): CatalogManager {
+    if (!this.catalogManager) {
+      throw new Error("SkillhubService not yet initialized");
+    }
     return this.catalogManager;
   }
 
+  async waitForReady(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+  }
+
   dispose(): void {
-    this.catalogManager.dispose();
+    this.catalogManager?.dispose();
   }
 }
