@@ -4,8 +4,10 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
 } from "react";
+import { patchApiInternalDesktopPreferences } from "../../lib/api/sdk.gen";
 
 export type Locale = "en" | "zh";
 
@@ -37,9 +39,13 @@ const LocaleContext = createContext<LocaleCtx>({
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(detectDefault);
 
+  useEffect(() => {
+    i18n.changeLanguage(locale);
+    void syncDesktopLocale(locale);
+  }, [locale]);
+
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    i18n.changeLanguage(l);
     try {
       localStorage.setItem(STORAGE_KEY, l);
     } catch {
@@ -64,4 +70,14 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
 export function useLocale() {
   return useContext(LocaleContext);
+}
+
+async function syncDesktopLocale(locale: Locale): Promise<void> {
+  await patchApiInternalDesktopPreferences({
+    body: {
+      locale: locale === "zh" ? "zh-CN" : "en",
+    },
+  }).catch(() => {
+    // Best-effort sync only; local UI language should still work offline.
+  });
 }

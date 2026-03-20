@@ -44,6 +44,10 @@ const fallbackEventsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
+const desktopPreferencesSchema = z.object({
+  locale: z.enum(["en", "zh-CN"]),
+});
+
 export function registerDesktopRoutes(
   app: OpenAPIHono<ControllerBindings>,
   container: ControllerContainer,
@@ -99,6 +103,63 @@ export function registerDesktopRoutes(
           events: container.channelFallbackService.listRecentEvents(
             query.limit,
           ),
+        },
+        200,
+      );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/internal/desktop/preferences",
+      tags: ["Desktop"],
+      responses: {
+        200: {
+          content: {
+            "application/json": { schema: desktopPreferencesSchema },
+          },
+          description: "Desktop preferences",
+        },
+      },
+    }),
+    async (c) => {
+      return c.json(
+        {
+          locale: await container.configStore.getDesktopLocale(),
+        },
+        200,
+      );
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "patch",
+      path: "/api/internal/desktop/preferences",
+      tags: ["Desktop"],
+      request: {
+        body: {
+          content: {
+            "application/json": { schema: desktopPreferencesSchema },
+          },
+          required: true,
+        },
+      },
+      responses: {
+        200: {
+          content: {
+            "application/json": { schema: desktopPreferencesSchema },
+          },
+          description: "Updated desktop preferences",
+        },
+      },
+    }),
+    async (c) => {
+      const body = c.req.valid("json");
+      return c.json(
+        {
+          locale: await container.configStore.setDesktopLocale(body.locale),
         },
         200,
       );

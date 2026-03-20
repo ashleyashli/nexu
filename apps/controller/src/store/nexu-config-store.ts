@@ -141,6 +141,11 @@ function readDesktopCloud(config: NexuConfig): {
   };
 }
 
+function readDesktopLocale(config: NexuConfig): "en" | "zh-CN" {
+  const desktop = config.desktop as Record<string, unknown>;
+  return desktop.locale === "zh-CN" ? "zh-CN" : "en";
+}
+
 function now(): string {
   return new Date().toISOString();
 }
@@ -846,6 +851,23 @@ export class NexuConfigStore {
       connectedAt: cloud.connectedAt ?? null,
       models: cloud.models ?? [],
     };
+  }
+
+  async getDesktopLocale(): Promise<"en" | "zh-CN"> {
+    const config = await this.getConfig();
+    return readDesktopLocale(config);
+  }
+
+  async setDesktopLocale(locale: "en" | "zh-CN"): Promise<"en" | "zh-CN"> {
+    await this.store.update((config) => ({
+      ...config,
+      desktop: {
+        ...config.desktop,
+        locale,
+      },
+    }));
+
+    return locale;
   }
 
   async setDefaultModel(modelId: string): Promise<void> {

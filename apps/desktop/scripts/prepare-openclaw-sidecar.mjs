@@ -89,18 +89,6 @@ const genericErrorText = "The AI service returned an error. Please try again.";
 	const suppressErrorTextReply = (params.messageChannel === "feishu" || params.messageProvider === "feishu") && lastAssistantErrored;
 	if (errorText && !suppressErrorTextReply) replyItems.push({
 `.trim();
-const EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_SEARCH = `
-toolResultFormat: resolvedToolResultFormat,
-					suppressToolErrorWarnings: params.suppressToolErrorWarnings,
-					inlineToolResultsAllowed: false,
-`.trim();
-const EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_REPLACEMENT = `
-toolResultFormat: resolvedToolResultFormat,
-					messageChannel: params.messageChannel,
-					messageProvider: params.messageProvider,
-					suppressToolErrorWarnings: params.suppressToolErrorWarnings,
-					inlineToolResultsAllowed: false,
-`.trim();
 const CORE_EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_SEARCH = `
 toolResultFormat: resolvedToolResultFormat,
 					messageChannel: params.messageChannel,
@@ -141,113 +129,48 @@ const FEISHU_PRE_REPLY_FINAL_REPLACEMENT = [
   '\t\t\tpayload: { text: isContextOverflow ? "⚠️ Context overflow — prompt too large for this model. Try a shorter message or a larger-context model." : isRoleOrderingError ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session." : `⚠️ Agent failed before reply: ${trimmedMessage}.\\nLogs: openclaw logs --follow` }',
   "\t\t};",
 ].join("\n");
-const OCFLOW_ERROR_DECISION_SEARCH = `
-const genericErrorText = "The AI service returned an error. Please try again.";
-	const suppressErrorTextReply = (params.messageChannel === "feishu" || params.messageProvider === "feishu") && lastAssistantErrored;
-	if (errorText && !suppressErrorTextReply) replyItems.push({
-		text: errorText,
-		isError: true
-	});
-`.trim();
-const OCFLOW_ERROR_DECISION_REPLACEMENT = `
-const genericErrorText = "The AI service returned an error. Please try again.";
-	const suppressErrorTextReply = (params.messageChannel === "feishu" || params.messageProvider === "feishu") && lastAssistantErrored;
-	const didPushErrorReply = Boolean(errorText && !suppressErrorTextReply);
-	console.log("NEXU_EVENT ocflow.error_payload_decision " + JSON.stringify({
-		sessionKey: params.sessionKey,
-		messageChannel: params.messageChannel ?? null,
-		messageProvider: params.messageProvider ?? null,
-		lastAssistantStopReason: params.lastAssistant?.stopReason ?? null,
-		lastAssistantErrored,
-		errorTextPresent: Boolean(errorText),
-		rawErrorPresent: Boolean(rawErrorMessage),
-		suppressErrorTextReply,
-		didPushErrorReply,
-		assistantTextCount: params.assistantTexts.length,
-		didSendViaMessagingTool: params.didSendViaMessagingTool === true
-	}));
-	if (errorText && !suppressErrorTextReply) replyItems.push({
-		text: errorText,
-		isError: true
-	});
-`.trim();
-const OCFLOW_PAYLOAD_PIPELINE_SEARCH = `
-const payloadArray = runResult.payloads ?? [];
-		if (payloadArray.length === 0) return;
-`.trim();
-const OCFLOW_PAYLOAD_PIPELINE_REPLACEMENT = `
-const payloadArray = runResult.payloads ?? [];
-		console.log("NEXU_EVENT ocflow.payload_pipeline " + JSON.stringify({
-			sessionKey,
-			runId,
-			payloadCount: payloadArray.length,
-			payloadPreview: payloadArray.slice(0, 3).map((payload) => ({
-				text: typeof payload.text === "string" ? payload.text.slice(0, 160) : null,
-				isError: payload.isError === true,
-				hasMedia: Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0
-			}))
-		}));
-		if (payloadArray.length === 0) return;
-`.trim();
-const OCFLOW_FINAL_DISPATCH_SEARCH = `
-const replies = replyResult ? Array.isArray(replyResult) ? replyResult : [replyResult] : [];
-		let queuedFinal = false;
-		let routedFinalCount = 0;
-		for (const reply of replies) {
-			if (shouldSuppressReasoningPayload(reply)) continue;
-			const ttsReply = await maybeApplyTtsToPayload({
-`.trim();
-const OCFLOW_FINAL_DISPATCH_REPLACEMENT = `
-const replies = replyResult ? Array.isArray(replyResult) ? replyResult : [replyResult] : [];
-		console.log("NEXU_EVENT ocflow.final_dispatch_batch " + JSON.stringify({
-			sessionKey: ctx.SessionKey,
-			surface: ctx.Surface ?? null,
-			provider: ctx.Provider ?? null,
-			replyCount: replies.length,
-			shouldRouteToOriginating,
-			originatingChannel: originatingChannel ?? null,
-			originatingTo: originatingTo ?? null
-		}));
-		let queuedFinal = false;
-		let routedFinalCount = 0;
-		for (const reply of replies) {
-			if (shouldSuppressReasoningPayload(reply)) continue;
-			const ttsReply = await maybeApplyTtsToPayload({
-`.trim();
-const OCFLOW_FINAL_REPLY_SEND_SEARCH = `
-			if (shouldRouteToOriginating && originatingChannel && originatingTo) {
-`.trim();
-const OCFLOW_FINAL_REPLY_SEND_REPLACEMENT = `
-			console.log("NEXU_EVENT ocflow.final_dispatch_reply " + JSON.stringify({
-				sessionKey: ctx.SessionKey,
-				surface: ctx.Surface ?? null,
-				provider: ctx.Provider ?? null,
-				text: typeof ttsReply.text === "string" ? ttsReply.text.slice(0, 160) : null,
-				isError: ttsReply.isError === true,
-				hasMedia: Boolean(ttsReply.mediaUrl) || (ttsReply.mediaUrls?.length ?? 0) > 0,
-				replyToMessageId: ttsReply.replyToMessageId ?? null,
-				replyInThread: ttsReply.replyInThread === true
-			}));
-			if (shouldRouteToOriginating && originatingChannel && originatingTo) {
-`.trim();
 const PLUGIN_SDK_BUNDLE_PATTERNS = [/^reply-.*\.js$/u, /^dispatch-.*\.js$/u];
 const CORE_DIST_REPLY_BUNDLE_PATTERNS = [/^reply-.*\.js$/u];
-const FEISHU_BOT_TRIGGER_CALLSITE_SEARCH = `
-        mentionTargets: ctx.mentionTargets,
-        accountId: account.accountId,
-        messageCreateTimeMs,
+const FEISHU_PRE_LLM_SINGLE_AGENT_SEARCH = `
+      // --- Single-agent dispatch (existing behavior) ---
+      const ctxPayload = buildCtxPayloadForAgent(
 `.trim();
-const FEISHU_BOT_TRIGGER_CALLSITE_REPLACEMENT = `
-        mentionTargets: ctx.mentionTargets,
+const FEISHU_PRE_LLM_SINGLE_AGENT_REPLACEMENT = [
+  "      // --- Single-agent dispatch (existing behavior) ---",
+  "      const syntheticFailureTriggerPrefix = process.env.NEXU_FEISHU_TEST_TRIGGER_PREFIX?.trim();",
+  "      if (syntheticFailureTriggerPrefix && ctx.content.includes(syntheticFailureTriggerPrefix)) {",
+  "        const syntheticInput = ctx.content.slice(ctx.content.indexOf(syntheticFailureTriggerPrefix) + syntheticFailureTriggerPrefix.length).trim();",
+  "        runtime.log?.(`NEXU_EVENT channel.reply_outcome ${JSON.stringify({",
+  '          channel: "feishu",',
+  '          status: "failed",',
+  '          reasonCode: "synthetic_pre_llm_failure",',
+  "          accountId: account.accountId,",
+  "          chatId: ctx.chatId,",
+  "          replyToMessageId: replyTargetMessageId,",
+  "          threadId: ctx.rootId,",
+  "          sessionKey: route.sessionKey,",
+  "          syntheticInput,",
+  '          error: "synthetic pre-llm failure",',
+  "          ts: new Date().toISOString(),",
+  "        })}`);",
+  "        log(",
+  "          `feishu[${account.accountId}]: synthetic pre-llm failure triggered (session=${route.sessionKey})`,",
+  "        );",
+  "        return;",
+  "      }",
+  "      const ctxPayload = buildCtxPayloadForAgent(",
+].join("\n");
+const LEGACY_FEISHU_TRIGGER_CALLSITE = `
         accountId: account.accountId,
         syntheticFailureTriggerText: ctx.content,
         messageCreateTimeMs,
 `.trim();
-const FEISHU_PRE_LLM_TRIGGER_BLOCK_SEARCH = `
-      const { dispatcher, replyOptions, markDispatchIdle } = createFeishuReplyDispatcher({
+const LEGACY_FEISHU_TRIGGER_CALLSITE_REPLACEMENT = `
+        accountId: account.accountId,
+        messageCreateTimeMs,
 `.trim();
-const FEISHU_PRE_LLM_TRIGGER_BLOCK_REPLACEMENT = [
-  '      if (ctx.content.includes("__fail_reply__")) {',
+const LEGACY_FEISHU_PRE_LLM_BLOCK = [
+  '                if (ctx.content.includes("__fail_reply__")) {',
   "        runtime.log?.(`NEXU_EVENT channel.reply_outcome ${JSON.stringify({",
   '          channel: "feishu",',
   '          status: "failed",',
@@ -266,14 +189,8 @@ const FEISHU_PRE_LLM_TRIGGER_BLOCK_REPLACEMENT = [
   "        return;",
   "      }",
   "",
-  "      const { dispatcher, replyOptions, markDispatchIdle } = createFeishuReplyDispatcher({",
 ].join("\n");
-const FEISHU_PRE_LLM_SINGLE_AGENT_SEARCH = `
-      // --- Single-agent dispatch (existing behavior) ---
-      const ctxPayload = buildCtxPayloadForAgent(
-`.trim();
-const FEISHU_PRE_LLM_SINGLE_AGENT_REPLACEMENT = [
-  "      // --- Single-agent dispatch (existing behavior) ---",
+const LEGACY_FEISHU_SINGLE_AGENT_TRIGGER_BLOCK = [
   '      if (ctx.content.includes("__fail_reply__")) {',
   "        runtime.log?.(`NEXU_EVENT channel.reply_outcome ${JSON.stringify({",
   '          channel: "feishu",',
@@ -292,7 +209,6 @@ const FEISHU_PRE_LLM_SINGLE_AGENT_REPLACEMENT = [
   "        );",
   "        return;",
   "      }",
-  "      const ctxPayload = buildCtxPayloadForAgent(",
 ].join("\n");
 const sidecarRoot = getSidecarRoot("openclaw");
 const sidecarBinDir = resolve(sidecarRoot, "bin");
@@ -599,20 +515,26 @@ async function patchReplyOutcomeBridge() {
     "bot.ts",
   );
   let feishuBotSource = await readFile(feishuBotPath, "utf8");
-  if (feishuBotSource.includes(FEISHU_BOT_TRIGGER_CALLSITE_SEARCH)) {
+
+  if (feishuBotSource.includes(LEGACY_FEISHU_PRE_LLM_BLOCK)) {
     feishuBotSource = feishuBotSource.replaceAll(
-      FEISHU_BOT_TRIGGER_CALLSITE_SEARCH,
-      FEISHU_BOT_TRIGGER_CALLSITE_REPLACEMENT,
+      LEGACY_FEISHU_PRE_LLM_BLOCK,
+      "",
     );
-    console.log("[openclaw-sidecar] patched feishu bot trigger callsite");
   }
 
-  if (feishuBotSource.includes(FEISHU_PRE_LLM_TRIGGER_BLOCK_SEARCH)) {
-    feishuBotSource = feishuBotSource.replace(
-      FEISHU_PRE_LLM_TRIGGER_BLOCK_SEARCH,
-      FEISHU_PRE_LLM_TRIGGER_BLOCK_REPLACEMENT,
+  if (feishuBotSource.includes(LEGACY_FEISHU_SINGLE_AGENT_TRIGGER_BLOCK)) {
+    feishuBotSource = feishuBotSource.replaceAll(
+      LEGACY_FEISHU_SINGLE_AGENT_TRIGGER_BLOCK,
+      FEISHU_PRE_LLM_SINGLE_AGENT_REPLACEMENT,
     );
-    console.log("[openclaw-sidecar] patched feishu pre-llm trigger block");
+  }
+
+  if (feishuBotSource.includes(LEGACY_FEISHU_TRIGGER_CALLSITE)) {
+    feishuBotSource = feishuBotSource.replaceAll(
+      LEGACY_FEISHU_TRIGGER_CALLSITE,
+      LEGACY_FEISHU_TRIGGER_CALLSITE_REPLACEMENT,
+    );
   }
 
   if (feishuBotSource.includes(FEISHU_PRE_LLM_SINGLE_AGENT_SEARCH)) {
@@ -676,29 +598,8 @@ async function patchReplyOutcomeBridge() {
           `${bundleName}: feishu error reply suppress guard`,
         );
 
-        if (source.includes(EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_SEARCH)) {
-          source = applyExactReplacement(
-            source,
-            EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_SEARCH,
-            EMBEDDED_PAYLOAD_MESSAGE_CHANNEL_REPLACEMENT,
-            `${bundleName}: embedded payload message channel`,
-          );
-        }
-
         console.log(
           `[openclaw-sidecar] patched feishu error final suppression in ${bundleName}`,
-        );
-      }
-
-      if (
-        !source.includes("NEXU_EVENT ocflow.error_payload_decision") &&
-        source.includes(OCFLOW_ERROR_DECISION_SEARCH)
-      ) {
-        source = applyExactReplacement(
-          source,
-          OCFLOW_ERROR_DECISION_SEARCH,
-          OCFLOW_ERROR_DECISION_REPLACEMENT,
-          `${bundleName}: ocflow error payload decision`,
         );
       }
 
@@ -728,42 +629,6 @@ async function patchReplyOutcomeBridge() {
 
         console.log(
           `[openclaw-sidecar] patched feishu pre-reply final suppression in ${bundleName}`,
-        );
-      }
-
-      if (
-        !source.includes("NEXU_EVENT ocflow.payload_pipeline") &&
-        source.includes(OCFLOW_PAYLOAD_PIPELINE_SEARCH)
-      ) {
-        source = applyExactReplacement(
-          source,
-          OCFLOW_PAYLOAD_PIPELINE_SEARCH,
-          OCFLOW_PAYLOAD_PIPELINE_REPLACEMENT,
-          `${bundleName}: ocflow payload pipeline`,
-        );
-      }
-
-      if (
-        !source.includes("NEXU_EVENT ocflow.final_dispatch_batch") &&
-        source.includes(OCFLOW_FINAL_DISPATCH_SEARCH)
-      ) {
-        source = applyExactReplacement(
-          source,
-          OCFLOW_FINAL_DISPATCH_SEARCH,
-          OCFLOW_FINAL_DISPATCH_REPLACEMENT,
-          `${bundleName}: ocflow final dispatch batch`,
-        );
-      }
-
-      if (
-        !source.includes("NEXU_EVENT ocflow.final_dispatch_reply") &&
-        source.includes(OCFLOW_FINAL_REPLY_SEND_SEARCH)
-      ) {
-        source = applyExactReplacement(
-          source,
-          OCFLOW_FINAL_REPLY_SEND_SEARCH,
-          OCFLOW_FINAL_REPLY_SEND_REPLACEMENT,
-          `${bundleName}: ocflow final dispatch reply`,
         );
       }
 

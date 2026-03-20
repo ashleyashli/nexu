@@ -30,7 +30,11 @@ describe("ChannelFallbackService", () => {
       messageId: "om_fallback",
       channel: "feishu",
     });
-    const service = new ChannelFallbackService(source, { sendChannelMessage });
+    const service = new ChannelFallbackService(
+      source,
+      { sendChannelMessage },
+      { getLocale: () => "en" },
+    );
 
     service.start();
     source.emit("channel.reply_outcome", {
@@ -51,6 +55,9 @@ describe("ChannelFallbackService", () => {
         accountId: "acc-1",
         to: "chat:oc_123",
         threadId: "om_root",
+        message: expect.stringContaining(
+          "couldn't deliver the previous reply successfully",
+        ),
       }),
     );
     expect(service.listRecentEvents(1)[0]).toMatchObject({
@@ -64,13 +71,18 @@ describe("ChannelFallbackService", () => {
     const sendChannelMessage = vi
       .fn()
       .mockResolvedValue({ messageId: "om_fallback" });
-    const service = new ChannelFallbackService(source, { sendChannelMessage });
+    const service = new ChannelFallbackService(
+      source,
+      { sendChannelMessage },
+      { getLocale: () => "en" },
+    );
 
     service.start();
     const payload = {
       channel: "feishu",
       status: "silent",
       to: "chat:oc_123",
+      replyToMessageId: "om_dup",
       actionId: "act-dup",
       reasonCode: "no_final_reply",
     };
@@ -88,7 +100,11 @@ describe("ChannelFallbackService", () => {
   it("ignores non-feishu outcomes", async () => {
     const source = createEventSource();
     const sendChannelMessage = vi.fn();
-    const service = new ChannelFallbackService(source, { sendChannelMessage });
+    const service = new ChannelFallbackService(
+      source,
+      { sendChannelMessage },
+      { getLocale: () => "en" },
+    );
 
     service.start();
     source.emit("channel.reply_outcome", {
@@ -102,7 +118,7 @@ describe("ChannelFallbackService", () => {
     expect(sendChannelMessage).not.toHaveBeenCalled();
     expect(service.listRecentEvents(1)[0]).toMatchObject({
       fallbackOutcome: "skipped",
-      fallbackReason: "ignored_event",
+      fallbackReason: "unsupported_channel",
     });
   });
 });

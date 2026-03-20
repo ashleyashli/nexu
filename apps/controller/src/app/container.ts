@@ -34,6 +34,7 @@ import { type ControllerEnv, env } from "./env.js";
 
 export interface ControllerContainer {
   env: ControllerEnv;
+  configStore: NexuConfigStore;
   gatewayClient: GatewayClient;
   runtimeHealth: RuntimeHealth;
   openclawProcess: OpenClawProcessManager;
@@ -75,6 +76,9 @@ export function createContainer(): ControllerContainer {
   const channelFallbackService = new ChannelFallbackService(
     openclawProcess,
     gatewayService,
+    {
+      getLocale: () => configStore.getDesktopLocale(),
+    },
   );
   const openclawSyncService = new OpenClawSyncService(
     env,
@@ -97,6 +101,7 @@ export function createContainer(): ControllerContainer {
 
   return {
     env,
+    configStore,
     gatewayClient,
     runtimeHealth,
     openclawProcess,
