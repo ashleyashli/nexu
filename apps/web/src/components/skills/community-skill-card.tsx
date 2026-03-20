@@ -35,7 +35,6 @@ export function CommunitySkillCard({
   >(null);
 
   const isBusy = pendingAction !== null;
-
   const displayName = getSkillName(skill.slug, skill.name, locale);
   const displayDescription = getSkillDescription(
     skill.slug,
