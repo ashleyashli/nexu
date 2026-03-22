@@ -962,6 +962,7 @@ function WechatQrModal({
           <WechatSetupView
             onConnected={onConnected}
             gatewayReady={gatewayReady}
+            showHeader={false}
           />
         </div>
       </div>
