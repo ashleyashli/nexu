@@ -755,6 +755,7 @@ app.whenReady().then(async () => {
 
     if (app.isPackaged && runtimeConfig.updates.autoUpdateEnabled) {
       const updateMgr = new UpdateManager(win, orchestrator, {
+        channel: runtimeConfig.updates.channel,
         feedUrl: runtimeConfig.urls.updateFeed,
       });
       setUpdateManager(updateMgr);

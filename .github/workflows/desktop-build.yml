@@ -158,6 +158,7 @@ jobs:
               NEXU_LINK_URL: process.env.LINK_URL === "null" ? null : process.env.LINK_URL,
               NEXU_SENTRY_ENV: process.env.SENTRY_ENV,
               NEXU_DESKTOP_APP_VERSION: version,
+              NEXU_DESKTOP_UPDATE_CHANNEL: "${{ inputs.channel }}",
               NEXU_DESKTOP_BUILD_SOURCE: process.env.BUILD_SOURCE,
               NEXU_DESKTOP_BUILD_BRANCH: process.env.BUILD_BRANCH,
               NEXU_DESKTOP_BUILD_COMMIT: process.env.BUILD_COMMIT,
