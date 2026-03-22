@@ -208,10 +208,10 @@ pnpm test
 
 ## 💬 社区
 
-| 飞书群 | Discord |
-|:---:|:---:|
-| <img src="site/media/feishu-qr.png" width="200" /> | <img src="site/media/discord-qr.png" width="200" /> |
-| [加入飞书群](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=8b7k7b5b-ac27-4748-9165-78606dc16913) | [加入 Discord](https://discord.gg/Q6AxCUuMNU) |
+| 微信群 | 飞书群 | Discord |
+|:---:|:---:|:---:|
+| <img src="site/media/wechat-qr.png" width="200" height="200" /> | <img src="site/media/feishu-qr.png" width="200" height="200" /> | <img src="site/media/discord-qr.png" width="200" height="200" /> |
+| 扫码加入微信群 | [加入飞书群](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=8b7k7b5b-ac27-4748-9165-78606dc16913) | [加入 Discord](https://discord.gg/Q6AxCUuMNU) |
 
 - [GitHub Discussions](https://github.com/nexu-io/nexu/discussions)
 - [GitHub Issues](https://github.com/nexu-io/nexu/issues)

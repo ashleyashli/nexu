@@ -208,10 +208,10 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ## 💬 Community
 
-| Feishu Group | Discord |
-|:---:|:---:|
-| <img src="site/media/feishu-qr.png" width="200" /> | <img src="site/media/discord-qr.png" width="200" /> |
-| [Join Feishu Group](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=8b7k7b5b-ac27-4748-9165-78606dc16913) | [Join Discord](https://discord.gg/Q6AxCUuMNU) |
+| WeChat Group | Feishu Group | Discord |
+|:---:|:---:|:---:|
+| <img src="site/media/wechat-qr.png" width="200" height="200" /> | <img src="site/media/feishu-qr.png" width="200" height="200" /> | <img src="site/media/discord-qr.png" width="200" height="200" /> |
+| Scan to join WeChat group | [Join Feishu Group](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=8b7k7b5b-ac27-4748-9165-78606dc16913) | [Join Discord](https://discord.gg/Q6AxCUuMNU) |
 
 - [GitHub Discussions](https://github.com/nexu-io/nexu/discussions)
 - [GitHub Issues](https://github.com/nexu-io/nexu/issues)
