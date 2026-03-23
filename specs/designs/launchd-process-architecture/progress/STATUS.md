@@ -13,7 +13,7 @@
 | 2. Plist generation | **Done** | Controller + OpenClaw templates |
 | 3. Embedded Web Server | **Done** | Replace web sidecar |
 | 4. Bootstrap flow | **Done** | Desktop startup sequence |
-| 5. Exit behavior | Not Started | Quit dialog + graceful shutdown |
+| 5. Exit behavior | **Done** | Quit dialog + graceful shutdown |
 | 6. Dev mode scripts | Not Started | launchd-based dev workflow |
 | 7. Logging unification | **Done** | Unified to ~/.nexu/logs/ |
 | 8. Testing | Not Started | Integration tests |
@@ -22,7 +22,7 @@
 
 ## Current Task
 
-**Phase 5** - Exit behavior (quit dialog + graceful shutdown)
+**Phase 6** - Dev mode scripts
 
 ---
 
@@ -36,6 +36,7 @@
 - [x] Embedded web server (`apps/desktop/main/services/embedded-web-server.ts`)
 - [x] Bootstrap flow (`apps/desktop/main/services/launchd-bootstrap.ts`)
 - [x] Logging unified to `~/.nexu/logs/`
+- [x] Quit handler (`apps/desktop/main/services/quit-handler.ts`)
 
 ---
 

@@ -26,3 +26,11 @@ export {
   type LaunchdBootstrapEnv,
   type LaunchdBootstrapResult,
 } from "./launchd-bootstrap";
+
+export {
+  installLaunchdQuitHandler,
+  showQuitDialog,
+  quitWithDecision,
+  type QuitHandlerOptions,
+  type QuitDecision,
+} from "./quit-handler";
