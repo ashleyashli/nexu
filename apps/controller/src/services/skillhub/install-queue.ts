@@ -1,9 +1,10 @@
 import type { QueueItem, QueueItemStatus, SkillSource } from "./types.js";
 
-export type InstallExecutor = (
+export type InstallExecutor = (slug: string) => Promise<void>;
+export type InstallCompleteCallback = (
   slug: string,
   source: SkillSource,
-) => Promise<void>;
+) => void;
 
 type LogFn = (level: "info" | "error" | "warn", message: string) => void;
 
@@ -41,6 +42,7 @@ type MutableQueueItem = {
 
 export class InstallQueue {
   private readonly executor: InstallExecutor;
+  private readonly onComplete: InstallCompleteCallback | null;
   private readonly log: LogFn;
   private readonly maxConcurrency: number;
   private readonly maxRetries: number;
@@ -57,12 +59,14 @@ export class InstallQueue {
 
   constructor(opts: {
     executor: InstallExecutor;
+    onComplete?: InstallCompleteCallback;
     log?: LogFn;
     maxConcurrency?: number;
     maxRetries?: number;
     cleanupDelayMs?: number;
   }) {
     this.executor = opts.executor;
+    this.onComplete = opts.onComplete ?? null;
     this.log = opts.log ?? (() => {});
     this.maxConcurrency = opts.maxConcurrency ?? 2;
     this.maxRetries = opts.maxRetries ?? 5;
@@ -165,9 +169,8 @@ export class InstallQueue {
     if (pendingItem) {
       return pendingItem;
     }
-    return this.completed.find(
-      (i) => i.slug === slug && (i.status === "done" || i.status === "failed"),
-    );
+    // Only dedup against "done" items — failed items should be retryable immediately
+    return this.completed.find((i) => i.slug === slug && i.status === "done");
   }
 
   private drain(): void {
@@ -192,7 +195,7 @@ export class InstallQueue {
   private execute(item: MutableQueueItem): void {
     this.log("info", `Executing install for: ${item.slug}`);
 
-    this.executor(item.slug, item.source).then(
+    this.executor(item.slug).then(
       () => {
         if (this.disposed) return;
         this.active.delete(item.slug);
@@ -204,6 +207,8 @@ export class InstallQueue {
           this.log("info", `queue: ${item.slug} completed but was cancelled`);
         } else {
           item.status = "done";
+          // Record in DB only on successful, non-cancelled completion
+          this.onComplete?.(item.slug, item.source);
           this.log("info", `Install complete: ${item.slug}`);
         }
 

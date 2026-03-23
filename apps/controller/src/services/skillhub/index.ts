@@ -4,7 +4,10 @@ export {
   InstallQueue,
   parseRateLimitPauseMs,
 } from "./install-queue.js";
-export type { InstallExecutor } from "./install-queue.js";
+export type {
+  InstallExecutor,
+  InstallCompleteCallback,
+} from "./install-queue.js";
 export { SkillDb } from "./skill-db.js";
 export {
   SkillDirWatcher,

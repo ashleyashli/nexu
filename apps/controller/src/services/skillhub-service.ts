@@ -48,8 +48,10 @@ export class SkillhubService {
     });
 
     const installQueue = new InstallQueue({
-      executor: async (slug, source) => {
+      executor: async (slug) => {
         await catalogManager.executeInstall(slug);
+      },
+      onComplete: (slug, source) => {
         skillDb.recordInstall(slug, source);
       },
       log,
@@ -76,13 +78,14 @@ export class SkillhubService {
     this.catalogManager.start();
     if (process.env.CI) return;
 
+    // Always reconcile disk state with ledger FIRST on every startup.
+    // This ensures on-disk skills are recorded before curated enqueue
+    // checks the ledger, preventing unnecessary re-downloads.
+    this.dirWatcher.syncNow();
+
     if (this.isFirstLaunch) {
       this.initialize();
     }
-
-    // Always reconcile disk state with ledger on every startup
-    // (catches skills added/removed while controller was stopped)
-    this.dirWatcher.syncNow();
 
     // Always start watching for external skill changes (agent installs)
     this.dirWatcher.start();
