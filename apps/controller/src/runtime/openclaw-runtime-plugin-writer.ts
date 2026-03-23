@@ -1,6 +1,18 @@
-import { cp, mkdir, readdir } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import type { ControllerEnv } from "../app/env.js";
+
+/**
+ * Check whether a path is a symlink. Returns false if the path does not exist.
+ */
+async function isSymlink(p: string): Promise<boolean> {
+  try {
+    const stat = await lstat(p);
+    return stat.isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
 
 export class OpenClawRuntimePluginWriter {
   constructor(private readonly env: ControllerEnv) {}
@@ -30,7 +42,11 @@ export class OpenClawRuntimePluginWriter {
         entry.name,
       );
       const targetDir = path.join(this.env.openclawExtensionsDir, entry.name);
-      await cp(sourceDir, targetDir, { recursive: true, force: true });
+      await cp(sourceDir, targetDir, {
+        recursive: true,
+        force: true,
+        filter: async (src) => !(await isSymlink(src)),
+      });
     }
   }
 }
