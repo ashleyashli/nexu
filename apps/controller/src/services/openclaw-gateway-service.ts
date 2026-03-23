@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import type { OpenClawConfig } from "@nexu/shared";
 import { logger } from "../lib/logger.js";
 import type { OpenClawWsClient } from "../runtime/openclaw-ws-client.js";
+import type { ControllerRuntimeState } from "../runtime/state.js";
 
 // ---------------------------------------------------------------------------
 // Public types — channel status & readiness
@@ -101,7 +102,10 @@ export class OpenClawGatewayService {
   /** SHA-256 hash of the last config we successfully observed. */
   private lastPushedConfigHash: string | null = null;
 
-  constructor(private readonly wsClient: OpenClawWsClient) {}
+  constructor(
+    private readonly wsClient: OpenClawWsClient,
+    private readonly runtimeState: ControllerRuntimeState,
+  ) {}
 
   /** Whether the WS client has completed handshake and is ready for RPC. */
   isConnected(): boolean {
@@ -181,13 +185,20 @@ export class OpenClawGatewayService {
     channels: ChannelLiveStatusEntry[];
   }> {
     if (!this.wsClient.isConnected()) {
+      // When gateway isn't connected yet (startup), show "connecting" instead
+      // of "disconnected" so the UI doesn't flash a scary red state.
+      const startupStatus: ChannelLiveStatus =
+        this.runtimeState.gatewayStatus === "starting" ||
+        this.runtimeState.gatewayStatus === "active"
+          ? "connecting"
+          : "disconnected";
       return {
         gatewayConnected: false,
         channels: channels.map((channel) => ({
           channelType: channel.channelType,
           channelId: channel.id,
           accountId: channel.accountId,
-          status: "disconnected",
+          status: startupStatus,
           ready: false,
           connected: false,
           running: false,

@@ -83,7 +83,7 @@ export async function createContainer(): Promise<ControllerContainer> {
   const runtimeState = createRuntimeState();
   const openclawProcess = new OpenClawProcessManager(env);
   const wsClient = new OpenClawWsClient(env);
-  const gatewayService = new OpenClawGatewayService(wsClient);
+  const gatewayService = new OpenClawGatewayService(wsClient, runtimeState);
   const channelFallbackService = new ChannelFallbackService(
     openclawProcess,
     gatewayService,
