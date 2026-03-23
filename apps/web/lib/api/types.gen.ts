@@ -2048,6 +2048,15 @@ export type GetApiV1SkillhubCatalogResponses = {
             updatedAt: string;
             skillCount: number;
         };
+        queue: Array<{
+            slug: string;
+            source: 'curated' | 'managed' | 'custom';
+            status: 'queued' | 'downloading' | 'installing-deps' | 'done' | 'failed';
+            position: number;
+            error: string;
+            retries: number;
+            enqueuedAt: string;
+        }>;
     };
 };
 
@@ -2068,6 +2077,10 @@ export type PostApiV1SkillhubInstallResponses = {
      */
     200: {
         ok: boolean;
+        queued?: boolean;
+        slug?: string;
+        status?: 'queued' | 'downloading' | 'installing-deps' | 'done' | 'failed';
+        position?: number;
         error?: string;
     };
 };

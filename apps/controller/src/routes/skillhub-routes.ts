@@ -29,15 +29,43 @@ const catalogMetaSchema = z.object({
   skillCount: z.number(),
 });
 
+const queueItemSchema = z.object({
+  slug: z.string(),
+  source: z.enum(["curated", "managed", "custom"]),
+  status: z.enum([
+    "queued",
+    "downloading",
+    "installing-deps",
+    "done",
+    "failed",
+  ]),
+  position: z.number(),
+  error: z.string().nullable(),
+  retries: z.number(),
+  enqueuedAt: z.string(),
+});
+
 const skillhubCatalogResponseSchema = z.object({
   skills: z.array(minimalSkillSchema),
   installedSlugs: z.array(z.string()),
   installedSkills: z.array(installedSkillSchema),
   meta: catalogMetaSchema.nullable(),
+  queue: z.array(queueItemSchema),
 });
 
 const skillhubMutationResultSchema = z.object({
   ok: z.boolean(),
+  error: z.string().optional(),
+});
+
+const skillhubInstallResultSchema = z.object({
+  ok: z.boolean(),
+  queued: z.boolean().optional(),
+  slug: z.string().optional(),
+  status: z
+    .enum(["queued", "downloading", "installing-deps", "done", "failed"])
+    .optional(),
+  position: z.number().optional(),
   error: z.string().optional(),
 });
 const skillhubRefreshResultSchema = z.object({
@@ -88,7 +116,8 @@ export function registerSkillhubRoutes(
     }),
     async (c) => {
       const catalog = container.skillhubService.catalog.getCatalog();
-      return c.json(catalog, 200);
+      const queue = [...container.skillhubService.queue.getQueue()];
+      return c.json({ ...catalog, queue }, 200);
     },
   );
 
@@ -110,7 +139,7 @@ export function registerSkillhubRoutes(
       responses: {
         200: {
           content: {
-            "application/json": { schema: skillhubMutationResultSchema },
+            "application/json": { schema: skillhubInstallResultSchema },
           },
           description: "Install",
         },
@@ -118,8 +147,17 @@ export function registerSkillhubRoutes(
     }),
     async (c) => {
       const { slug } = c.req.valid("json");
-      const result = await container.skillhubService.catalog.installSkill(slug);
-      return c.json(result, 200);
+      const queueItem = container.skillhubService.enqueueInstall(slug);
+      return c.json(
+        {
+          ok: true,
+          queued: true,
+          slug: queueItem.slug,
+          status: queueItem.status,
+          position: queueItem.position,
+        },
+        200,
+      );
     },
   );
 
