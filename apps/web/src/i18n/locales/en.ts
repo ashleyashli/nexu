@@ -403,6 +403,7 @@ const en = {
   "skills.yours": "Yours",
   "skills.recommended": "Recommended",
   "skills.installed": "Installed",
+  "skills.installQueued": "Skill queued for installation",
   "skills.import": "Import",
   "skills.loadingCatalog": "Downloading skill catalog...",
   "skills.catalogUnavailable": "Catalog unavailable",

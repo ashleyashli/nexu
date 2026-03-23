@@ -8,10 +8,27 @@ export type InstalledSkill = {
   installedAt: string | null;
 };
 
+export type QueueItemStatus =
+  | "queued"
+  | "downloading"
+  | "installing-deps"
+  | "done"
+  | "failed";
+
+export type QueueItem = {
+  readonly slug: string;
+  readonly source: SkillSource;
+  readonly status: QueueItemStatus;
+  readonly position: number;
+  readonly error?: string;
+  readonly enqueuedAt: string;
+};
+
 export type SkillhubCatalogData = {
   skills: MinimalSkill[];
   installedSlugs: string[];
   installedSkills: InstalledSkill[];
+  queue: QueueItem[];
   meta: CatalogMeta | null;
 };
 

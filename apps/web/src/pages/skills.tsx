@@ -36,10 +36,18 @@ function useDebounce<T>(value: T, delayMs: number): T {
 function SkillCard({
   skill,
   isInstalled,
+  queueStatus,
   categoryLabel,
 }: {
   skill: MinimalSkill;
   isInstalled: boolean;
+  queueStatus?:
+    | "queued"
+    | "downloading"
+    | "installing-deps"
+    | "done"
+    | "failed"
+    | null;
   categoryLabel?: string;
 }) {
   const installMutation = useInstallSkill();
@@ -48,7 +56,11 @@ function SkillCard({
     "install" | "uninstall" | null
   >(null);
 
-  const isBusy = pendingAction !== null;
+  const isQueueActive =
+    queueStatus === "queued" ||
+    queueStatus === "downloading" ||
+    queueStatus === "installing-deps";
+  const isBusy = pendingAction !== null || isQueueActive;
 
   async function handleInstall() {
     setPendingAction("install");
@@ -119,27 +131,31 @@ function SkillCard({
           }
         }}
       >
-        {isInstalled ? (
+        {isInstalled || isQueueActive ? (
           <>
             <Switch
               size="xs"
-              checked={isInstalled}
+              checked={isInstalled || isQueueActive}
               disabled={isBusy}
               loading={isBusy}
               onCheckedChange={handleToggle}
             />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleToggle(false);
-              }}
-              disabled={isBusy}
-              className="text-[12px] font-medium text-text-muted hover:text-[var(--color-danger)] transition-colors"
-            >
-              Uninstall
-            </button>
+            {isInstalled && !isQueueActive ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleToggle(false);
+                }}
+                disabled={isBusy}
+                className="text-[12px] font-medium text-text-muted hover:text-[var(--color-danger)] transition-colors"
+              >
+                Uninstall
+              </button>
+            ) : (
+              <span className="text-[11px] text-text-muted">Installing…</span>
+            )}
           </>
         ) : (
           <>
@@ -236,6 +252,16 @@ export function SkillsPage() {
   const allSkills = data?.skills ?? [];
   const installedSlugs = new Set(data?.installedSlugs ?? []);
   const installedSkills: InstalledSkill[] = data?.installedSkills ?? [];
+  const queueBySlug = useMemo(() => {
+    const map = new Map<
+      string,
+      "queued" | "downloading" | "installing-deps" | "done" | "failed"
+    >();
+    for (const item of data?.queue ?? []) {
+      map.set(item.slug, item.status);
+    }
+    return map;
+  }, [data?.queue]);
 
   // Compute top tags
   const topTags = useMemo(() => {
@@ -634,6 +660,7 @@ export function SkillsPage() {
                 key={skill.slug}
                 skill={skill}
                 isInstalled={installedSlugs.has(skill.slug)}
+                queueStatus={queueBySlug.get(skill.slug)}
                 categoryLabel={
                   firstTag ? getTagLabel(firstTag, locale) : undefined
                 }

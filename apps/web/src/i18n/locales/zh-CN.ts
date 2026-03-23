@@ -384,6 +384,7 @@ const zhCN = {
   "skills.yours": "我的",
   "skills.recommended": "推荐",
   "skills.installed": "已安装",
+  "skills.installQueued": "技能已加入安装队列",
   "skills.import": "导入",
   "skills.loadingCatalog": "正在下载技能目录...",
   "skills.catalogUnavailable": "目录不可用",

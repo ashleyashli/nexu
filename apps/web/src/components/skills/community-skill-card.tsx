@@ -4,7 +4,7 @@ import {
   useUninstallSkill,
 } from "@/hooks/use-community-catalog";
 import { getTagLabel } from "@/lib/skill-translations";
-import type { MinimalSkill } from "@/types/desktop";
+import type { MinimalSkill, QueueItemStatus } from "@/types/desktop";
 import { Download, Star } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -18,10 +18,12 @@ function formatDownloads(count: number): string {
 export function CommunitySkillCard({
   skill,
   isInstalled,
+  queueStatus,
   locale = "en",
 }: {
   skill: MinimalSkill;
   isInstalled: boolean;
+  queueStatus?: QueueItemStatus | null;
   locale?: string;
 }) {
   const installMutation = useInstallSkill();
@@ -30,7 +32,11 @@ export function CommunitySkillCard({
     "install" | "uninstall" | null
   >(null);
 
-  const isBusy = pendingAction !== null;
+  const isQueueActive =
+    queueStatus === "queued" ||
+    queueStatus === "downloading" ||
+    queueStatus === "installing-deps";
+  const isBusy = pendingAction !== null || isQueueActive;
 
   async function handleToggle(checked: boolean) {
     if (checked) {
@@ -80,7 +86,7 @@ export function CommunitySkillCard({
         >
           <Switch
             size="xs"
-            checked={isInstalled}
+            checked={isInstalled || isQueueActive}
             disabled={isBusy}
             loading={isBusy}
             onCheckedChange={handleToggle}
