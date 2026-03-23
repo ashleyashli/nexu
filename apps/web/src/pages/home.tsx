@@ -197,14 +197,13 @@ function getChannelStatusMeta(
       };
     case "error": {
       const errorKey = lastError ? `home.channel.errorDetail.${lastError}` : "";
-      const errorLabel =
-        lastError && t(errorKey) !== errorKey
-          ? t(errorKey)
-          : t("home.channel.error");
+      const hasDetail = lastError && t(errorKey) !== errorKey;
       return {
-        colorClass: "bg-[var(--color-danger)]",
+        colorClass: hasDetail
+          ? "bg-[var(--color-warning)]"
+          : "bg-[var(--color-danger)]",
         pulse: false,
-        label: errorLabel,
+        label: hasDetail ? t(errorKey) : t("home.channel.error"),
       };
     }
     default:
