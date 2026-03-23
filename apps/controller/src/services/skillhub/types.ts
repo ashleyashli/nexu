@@ -31,3 +31,20 @@ export type SkillhubCatalogData = {
   installedSkills: InstalledSkill[];
   meta: CatalogMeta | null;
 };
+
+export type QueueItemStatus =
+  | "queued"
+  | "downloading"
+  | "installing-deps"
+  | "done"
+  | "failed";
+
+export type QueueItem = {
+  readonly slug: string;
+  readonly source: SkillSource;
+  readonly status: QueueItemStatus;
+  readonly position: number;
+  readonly error: string | null;
+  readonly retries: number;
+  readonly enqueuedAt: string;
+};

@@ -7,4 +7,6 @@ export type {
   CatalogMeta,
   InstalledSkill,
   SkillSource,
+  QueueItem,
+  QueueItemStatus,
 } from "./types.js";
