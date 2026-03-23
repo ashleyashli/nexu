@@ -14,7 +14,7 @@
 | 3. Embedded Web Server | **Done** | Replace web sidecar |
 | 4. Bootstrap flow | **Done** | Desktop startup sequence |
 | 5. Exit behavior | **Done** | Quit dialog + graceful shutdown |
-| 6. Dev mode scripts | Not Started | launchd-based dev workflow |
+| 6. Dev mode scripts | **Done** | launchd-based dev workflow |
 | 7. Logging unification | **Done** | Unified to ~/.nexu/logs/ |
 | 8. Testing | Not Started | Integration tests |
 
@@ -22,7 +22,7 @@
 
 ## Current Task
 
-**Phase 6** - Dev mode scripts
+**Phase 8** - Integration tests and wiring to main index.ts
 
 ---
 
@@ -37,6 +37,7 @@
 - [x] Bootstrap flow (`apps/desktop/main/services/launchd-bootstrap.ts`)
 - [x] Logging unified to `~/.nexu/logs/`
 - [x] Quit handler (`apps/desktop/main/services/quit-handler.ts`)
+- [x] Dev mode script (`scripts/dev-launchd.sh`)
 
 ---
 
