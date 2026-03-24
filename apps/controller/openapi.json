@@ -5437,6 +5437,15 @@
                             "type": "string",
                             "nullable": true
                           },
+                          "errorCode": {
+                            "type": "string",
+                            "nullable": true,
+                            "enum": [
+                              "skill_not_found",
+                              "rate_limit",
+                              "unknown"
+                            ]
+                          },
                           "retries": {
                             "type": "number"
                           },
@@ -5450,6 +5459,7 @@
                           "status",
                           "position",
                           "error",
+                          "errorCode",
                           "retries",
                           "enqueuedAt"
                         ]

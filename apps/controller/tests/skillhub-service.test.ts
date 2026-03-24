@@ -83,6 +83,7 @@ const mocks = vi.hoisted(() => {
     enqueue: ReturnType<typeof vi.fn>;
     getQueue: ReturnType<typeof vi.fn>;
     dispose: ReturnType<typeof vi.fn>;
+    opts: Record<string, unknown>;
   }> = [];
 
   class MockInstallQueue {
@@ -97,8 +98,10 @@ const mocks = vi.hoisted(() => {
     }));
     public readonly getQueue = vi.fn(() => []);
     public readonly dispose = vi.fn();
+    public readonly opts: Record<string, unknown>;
 
     constructor(readonly opts: Record<string, unknown>) {
+      this.opts = opts;
       installQueueInstances.push(this);
     }
   }
@@ -215,11 +218,12 @@ describe("SkillhubService", () => {
       copied: [],
       skipped: [],
     });
-    process.env.CI = undefined;
+    vi.stubEnv("CI", "");
   });
 
   afterEach(async () => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     await rm(rootDir, { recursive: true, force: true });
   });
 
@@ -236,6 +240,32 @@ describe("SkillhubService", () => {
     expect(mocks.dirWatcherInstances).toHaveLength(1);
     expect(service.catalog).toBe(mocks.catalogManagerInstances[0]);
     expect(service.queue).toBe(mocks.installQueueInstances[0]);
+  });
+
+  it("create() wires queue completion and cancellation callbacks", async () => {
+    const env = createEnv(rootDir);
+    const db = createMockSkillDb();
+    mocks.mockSkillDbCreate.mockResolvedValueOnce(db);
+
+    await SkillhubService.create(env);
+
+    const queue = mocks.installQueueInstances[0];
+    const catalog = mocks.catalogManagerInstances[0];
+    const onComplete = queue.opts.onComplete as
+      | ((slug: string, source: string) => void)
+      | undefined;
+    const onCancelled = queue.opts.onCancelled as
+      | ((slug: string, source: string) => Promise<void>)
+      | undefined;
+
+    expect(onComplete).toBeTypeOf("function");
+    expect(onCancelled).toBeTypeOf("function");
+
+    onComplete?.("alpha", "managed");
+    expect(db.recordInstall).toHaveBeenCalledWith("alpha", "managed");
+
+    await onCancelled?.("beta", "managed");
+    expect(catalog.uninstallSkill).toHaveBeenCalledWith("beta");
   });
 
   it("start() calls catalogManager.start()", async () => {

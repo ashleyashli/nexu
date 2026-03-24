@@ -1,4 +1,5 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -6,9 +7,7 @@ import { SkillDb } from "#controller/services/skillhub/skill-db";
 import { SkillDirWatcher } from "#controller/services/skillhub/skill-dir-watcher";
 
 function makeTempDir(): string {
-  const dir = resolve(tmpdir(), `skill-dir-watcher-test-${Date.now()}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
+  return mkdtempSync(resolve(tmpdir(), "skill-dir-watcher-test-"));
 }
 
 function writeSkill(skillsDir: string, slug: string): void {

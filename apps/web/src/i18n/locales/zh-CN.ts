@@ -385,6 +385,8 @@ const zhCN = {
   "skills.recommended": "推荐",
   "skills.installed": "已安装",
   "skills.installQueued": "技能已加入安装队列",
+  "skills.skillNotFound":
+    '"{{slug}}" 在 ClawHub 上不可用，可能已被移除或重命名。',
   "skills.import": "导入",
   "skills.loadingCatalog": "正在下载技能目录...",
   "skills.catalogUnavailable": "目录不可用",

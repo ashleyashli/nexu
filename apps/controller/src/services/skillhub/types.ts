@@ -39,12 +39,15 @@ export type QueueItemStatus =
   | "done"
   | "failed";
 
+export type QueueErrorCode = "skill_not_found" | "rate_limit" | "unknown";
+
 export type QueueItem = {
   readonly slug: string;
   readonly source: SkillSource;
   readonly status: QueueItemStatus;
   readonly position: number;
   readonly error: string | null;
+  readonly errorCode: QueueErrorCode | null;
   readonly retries: number;
   readonly enqueuedAt: string;
 };

@@ -42,6 +42,7 @@ const queueItemSchema = z.object({
   ]),
   position: z.number(),
   error: z.string().nullable(),
+  errorCode: z.enum(["skill_not_found", "rate_limit", "unknown"]).nullable(),
   retries: z.number(),
   enqueuedAt: z.string(),
 });

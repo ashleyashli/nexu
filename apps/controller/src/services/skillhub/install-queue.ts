@@ -1,10 +1,19 @@
-import type { QueueItem, QueueItemStatus, SkillSource } from "./types.js";
+import type {
+  QueueErrorCode,
+  QueueItem,
+  QueueItemStatus,
+  SkillSource,
+} from "./types.js";
 
 export type InstallExecutor = (slug: string) => Promise<void>;
 export type InstallCompleteCallback = (
   slug: string,
   source: SkillSource,
 ) => void;
+export type InstallCancelledCallback = (
+  slug: string,
+  source: SkillSource,
+) => Promise<void> | void;
 
 type LogFn = (level: "info" | "error" | "warn", message: string) => void;
 
@@ -12,8 +21,15 @@ const MIN_PAUSE_MS = 3000;
 const MAX_PAUSE_MS = 60000;
 
 const RATE_LIMIT_PREFIX = /Rate limit exceeded/i;
+const SKILL_NOT_FOUND_PREFIX = /Skill not found/i;
 const RETRY_IN_PATTERN = /retry in (\d+)s/i;
 const RESET_IN_PATTERN = /reset in (\d+)s/i;
+
+function classifyError(message: string): QueueErrorCode {
+  if (RATE_LIMIT_PREFIX.test(message)) return "rate_limit";
+  if (SKILL_NOT_FOUND_PREFIX.test(message)) return "skill_not_found";
+  return "unknown";
+}
 
 export function parseRateLimitPauseMs(message: string): number | null {
   if (!RATE_LIMIT_PREFIX.test(message)) {
@@ -36,6 +52,7 @@ type MutableQueueItem = {
   source: SkillSource;
   status: QueueItemStatus;
   error: string | null;
+  errorCode: QueueErrorCode | null;
   retries: number;
   enqueuedAt: string;
 };
@@ -43,6 +60,7 @@ type MutableQueueItem = {
 export class InstallQueue {
   private readonly executor: InstallExecutor;
   private readonly onComplete: InstallCompleteCallback | null;
+  private readonly onCancelled: InstallCancelledCallback | null;
   private readonly log: LogFn;
   private readonly maxConcurrency: number;
   private readonly maxRetries: number;
@@ -60,6 +78,7 @@ export class InstallQueue {
   constructor(opts: {
     executor: InstallExecutor;
     onComplete?: InstallCompleteCallback;
+    onCancelled?: InstallCancelledCallback;
     log?: LogFn;
     maxConcurrency?: number;
     maxRetries?: number;
@@ -67,6 +86,7 @@ export class InstallQueue {
   }) {
     this.executor = opts.executor;
     this.onComplete = opts.onComplete ?? null;
+    this.onCancelled = opts.onCancelled ?? null;
     this.log = opts.log ?? (() => {});
     this.maxConcurrency = opts.maxConcurrency ?? 2;
     this.maxRetries = opts.maxRetries ?? 5;
@@ -85,6 +105,7 @@ export class InstallQueue {
       source,
       status: "queued",
       error: null,
+      errorCode: null,
       retries: 0,
       enqueuedAt: new Date().toISOString(),
     };
@@ -196,16 +217,26 @@ export class InstallQueue {
     this.log("info", `Executing install for: ${item.slug}`);
 
     this.executor(item.slug).then(
-      () => {
+      async () => {
         if (this.disposed) return;
-        this.active.delete(item.slug);
 
         if (this.cancelled.has(item.slug)) {
           this.cancelled.delete(item.slug);
+          try {
+            await this.onCancelled?.(item.slug, item.source);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.log(
+              "error",
+              `Cancel cleanup failed for ${item.slug}: ${message}`,
+            );
+          }
+          this.active.delete(item.slug);
           item.status = "failed";
           item.error = "Cancelled";
           this.log("info", `queue: ${item.slug} completed but was cancelled`);
         } else {
+          this.active.delete(item.slug);
           item.status = "done";
           // Record in DB only on successful, non-cancelled completion
           this.onComplete?.(item.slug, item.source);
@@ -219,6 +250,7 @@ export class InstallQueue {
       (err: unknown) => {
         if (this.disposed) return;
         const message = err instanceof Error ? err.message : String(err);
+        const code = classifyError(message);
         const pauseMs = parseRateLimitPauseMs(message);
 
         if (pauseMs !== null) {
@@ -231,6 +263,7 @@ export class InstallQueue {
           if (item.retries >= this.maxRetries) {
             item.status = "failed";
             item.error = message;
+            item.errorCode = code;
             this.active.delete(item.slug);
             this.completed.push(item);
             this.scheduleCleanup(item);
@@ -246,6 +279,7 @@ export class InstallQueue {
         } else {
           // Non-rate-limit error: fail immediately
           item.status = "failed";
+          item.errorCode = code;
           item.error = message;
           this.active.delete(item.slug);
           this.completed.push(item);
@@ -289,6 +323,7 @@ export class InstallQueue {
       status: item.status,
       position: this.computePosition(item),
       error: item.error,
+      errorCode: item.errorCode,
       retries: item.retries,
       enqueuedAt: item.enqueuedAt,
     };
@@ -304,6 +339,7 @@ export class InstallQueue {
       status: item.status,
       position,
       error: item.error,
+      errorCode: item.errorCode,
       retries: item.retries,
       enqueuedAt: item.enqueuedAt,
     };

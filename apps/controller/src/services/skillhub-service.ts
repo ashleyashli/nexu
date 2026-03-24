@@ -54,6 +54,9 @@ export class SkillhubService {
       onComplete: (slug, source) => {
         skillDb.recordInstall(slug, source);
       },
+      onCancelled: async (slug) => {
+        await catalogManager.uninstallSkill(slug);
+      },
       log,
     });
 

@@ -16,6 +16,7 @@ import { Compass, Loader2, Plus, Search, Settings2, Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 type TopTab = "explore" | "yours";
 type YoursSubTab = "all" | "recommended" | "installed";
@@ -262,6 +263,21 @@ export function SkillsPage() {
     }
     return map;
   }, [data?.queue]);
+
+  // Show toast for "skill not found" errors
+  const shownErrorSlugs = useRef(new Set<string>());
+  useEffect(() => {
+    for (const item of data?.queue ?? []) {
+      if (
+        item.status === "failed" &&
+        item.errorCode === "skill_not_found" &&
+        !shownErrorSlugs.current.has(item.slug)
+      ) {
+        shownErrorSlugs.current.add(item.slug);
+        toast.error(t("skills.skillNotFound", { slug: item.slug }));
+      }
+    }
+  }, [data?.queue, t]);
 
   // Compute top tags
   const topTags = useMemo(() => {

@@ -58,11 +58,15 @@ describe("parseRateLimitPauseMs", () => {
 describe("InstallQueue", () => {
   let queue: InstallQueue;
   let executor: ReturnType<typeof vi.fn<InstallExecutor>>;
+  let onComplete: ReturnType<typeof vi.fn>;
+  let onCancelled: ReturnType<typeof vi.fn>;
   const noopLog = () => {};
 
   beforeEach(() => {
     vi.useFakeTimers();
     executor = vi.fn<InstallExecutor>();
+    onComplete = vi.fn();
+    onCancelled = vi.fn();
   });
 
   afterEach(() => {
@@ -77,6 +81,8 @@ describe("InstallQueue", () => {
   }): InstallQueue {
     queue = new InstallQueue({
       executor,
+      onComplete,
+      onCancelled,
       log: noopLog,
       ...opts,
     });
@@ -397,11 +403,40 @@ describe("InstallQueue", () => {
       const itemA = items.find((i) => i.slug === "a");
       expect(itemA?.status).toBe("failed");
       expect(itemA?.error).toBe("Cancelled");
+      expect(onCancelled).toHaveBeenCalledWith("a", "managed");
+      expect(onComplete).not.toHaveBeenCalled();
     });
 
     it("returns false for unknown slug", () => {
       createQueue();
       expect(queue.cancel("nonexistent")).toBe(false);
+    });
+
+    it("keeps cancelled active item in-flight until cancellation cleanup completes", async () => {
+      const installDone = createDeferred<void>();
+      const cleanupDone = createDeferred<void>();
+      executor.mockReturnValue(installDone.promise);
+      onCancelled.mockReturnValue(cleanupDone.promise);
+      createQueue({ maxConcurrency: 1 });
+
+      queue.enqueue("a", "managed");
+      expect(queue.isInFlight("a")).toBe(true);
+
+      expect(queue.cancel("a")).toBe(true);
+      installDone.resolve(undefined);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(onCancelled).toHaveBeenCalledWith("a", "managed");
+      expect(queue.isInFlight("a")).toBe(true);
+
+      cleanupDone.resolve(undefined);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(queue.isInFlight("a")).toBe(false);
+      const itemA = queue.getQueue().find((i) => i.slug === "a");
+      expect(itemA?.status).toBe("failed");
+      expect(itemA?.error).toBe("Cancelled");
+      expect(onComplete).not.toHaveBeenCalled();
     });
   });
 
