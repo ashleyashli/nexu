@@ -240,7 +240,10 @@ export default defineConfig({
     },
   },
   head: [
-    ["meta", { name: "theme-color", content: "#c96f4a" }],
+    ["meta", { name: "theme-color", content: "#3DB9CE" }],
+    ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
+    ["link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" }],
+    ["link", { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" }],
     ["script", {}, localePreferenceScript],
     ["link", { rel: "icon", href: "/favicon/favicon.ico", sizes: "any" }],
     [
@@ -268,10 +271,11 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: {
-      light: "/favicon/favicon-light.svg",
-      dark: "/favicon/favicon-dark.svg",
-      alt: "Nexu",
+      light: "/favicon/nexu-logo-light.svg",
+      dark: "/favicon/nexu-logo-dark.svg",
+      alt: "nexu",
     },
+    siteTitle: false,
     socialLinks: [{ icon: "github", link: "https://github.com/nexu-io/nexu" }],
     langMenuLabel: "Language",
     search: {

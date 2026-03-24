@@ -21,6 +21,7 @@ import { LanguageSwitcher } from "../components/language-switcher";
 import { ProviderLogo } from "../components/provider-logo";
 import { useLocale } from "../hooks/use-locale";
 import { usePageTitle } from "../hooks/use-page-title";
+import { track } from "../lib/tracking";
 
 const SETUP_COMPLETE_KEY = "nexu_setup_complete";
 
@@ -216,6 +217,7 @@ export function WelcomePage() {
   ];
 
   const handleAccountLogin = async () => {
+    track("welcome_option_click", { option: "nexu_account" });
     setCloudConnecting(true);
     setLoginError(null);
     try {
@@ -281,6 +283,7 @@ export function WelcomePage() {
   };
 
   const handleByokEntry = () => {
+    track("welcome_option_click", { option: "byok" });
     markSetupComplete();
     navigate("/workspace/settings?setup=1&tab=providers");
   };
@@ -606,7 +609,7 @@ export function WelcomePage() {
                       <button
                         type="button"
                         onClick={handleByokContinue}
-                        className="flex h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-[14px] font-semibold text-white transition-all hover:bg-emerald-700 active:scale-[0.98] cursor-pointer"
+                        className="flex h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-success)] text-[14px] font-semibold text-white transition-all hover:brightness-[0.92] active:scale-[0.98] cursor-pointer"
                       >
                         <Check size={16} />
                         {t("welcome.byok.success")}

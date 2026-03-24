@@ -1,4 +1,5 @@
 import { ModelLogo, ProviderLogo } from "@/components/provider-logo";
+import { track } from "@/lib/tracking";
 import { cn } from "@/lib/utils";
 import { Check, ChevronDown, Cpu, Search, Settings } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -11,7 +12,7 @@ export interface ModelPickerItem {
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
-  nexu: "Nexu Official",
+  nexu: "nexu Official",
   anthropic: "Anthropic",
   openai: "OpenAI",
   google: "Google AI",
@@ -221,6 +222,7 @@ export function ModelPickerDropdown({
             return;
           }
 
+          track("workspace_change_model_click");
           setExpandedProviders(resolveOpenGroups());
           setOpen(true);
         }}
@@ -388,7 +390,7 @@ export function ModelPickerDropdown({
                                   ? "w-full flex items-center gap-2 pl-8 pr-3 py-1.5 text-left transition-colors hover:bg-surface-2"
                                   : "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
                                 isSelected
-                                  ? "bg-accent/5"
+                                  ? "bg-brand-primary/5"
                                   : compact
                                     ? undefined
                                     : "hover:bg-surface-2",
@@ -398,7 +400,7 @@ export function ModelPickerDropdown({
                                 isSelected ? (
                                   <Check
                                     size={12}
-                                    className="text-accent shrink-0"
+                                    className="text-brand-primary shrink-0"
                                   />
                                 ) : (
                                   <span className="w-[12px] shrink-0" />
@@ -408,7 +410,7 @@ export function ModelPickerDropdown({
                                   {isSelected ? (
                                     <Check
                                       size={14}
-                                      className="text-accent shrink-0"
+                                      className="text-brand-primary shrink-0"
                                     />
                                   ) : null}
                                 </span>
@@ -427,7 +429,7 @@ export function ModelPickerDropdown({
                                       ? "text-[12px]"
                                       : "text-[12px] truncate",
                                     isSelected
-                                      ? "font-semibold text-accent"
+                                      ? "font-semibold text-text-primary"
                                       : "font-medium text-text-primary",
                                   )}
                                 >
@@ -458,6 +460,7 @@ export function ModelPickerDropdown({
                 type="button"
                 onClick={() => {
                   closePicker();
+                  track("workspace_configure_model_provider_click");
                   onOpenSettings();
                 }}
                 className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] text-text-secondary hover:bg-surface-2 transition-colors"

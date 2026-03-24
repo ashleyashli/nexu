@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { registerArtifactRoutes } from "../routes/artifact-routes.js";
-import { registerAuthRoutes } from "../routes/auth-routes.js";
 import { registerBotRoutes } from "../routes/bot-routes.js";
 import { registerChannelRoutes } from "../routes/channel-routes.js";
 import { registerDesktopCompatRoutes } from "../routes/desktop-compat-routes.js";
@@ -34,7 +33,6 @@ export function createApp(container: ControllerContainer) {
   );
 
   registerBotRoutes(app, container);
-  registerAuthRoutes(app, container);
   registerMiscCompatRoutes(app, container);
   registerDesktopRoutes(app, container);
   registerDesktopCompatRoutes(app, container);
@@ -51,7 +49,7 @@ export function createApp(container: ControllerContainer) {
   app.doc("/openapi.json", {
     openapi: "3.1.0",
     info: {
-      title: "Nexu Controller API",
+      title: "nexu Controller API",
       version: "0.1.0",
     },
   });
