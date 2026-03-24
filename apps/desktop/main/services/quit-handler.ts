@@ -91,10 +91,9 @@ export function installLaunchdQuitHandler(opts: QuitHandlerOptions): void {
       // If a force-quit is in progress, let the window close
       if ((app as unknown as Record<string, unknown>).__nexuForceQuit) return;
 
-      // Dev mode: just hide (vite HMR restarts)
+      // Dev mode: let the window close normally (no dialog, no hide).
+      // Services are stopped by `pnpm stop` / dev-launchd.sh.
       if (!app.isPackaged) {
-        event.preventDefault();
-        window.hide();
         return;
       }
 
