@@ -147,11 +147,35 @@ start_services() {
 
   mkdir -p "$LOG_DIR"
 
-  # When this script exits (Electron quit, Ctrl+C, etc), stop launchd services
-  trap 'echo ""; echo "Cleaning up..."; stop_services' EXIT INT TERM
+  # When this script exits (Electron quit, Ctrl+C, etc), stop everything
+  trap 'echo ""; echo "Cleaning up..."; kill $CONTROLLER_WATCH_PID $WEB_WATCH_PID 2>/dev/null; stop_services' EXIT INT TERM
 
-  # Start Electron desktop with launchd mode (pre-built, no vite watch)
+  # Start file watchers in background:
+  # - Controller: tsc --watch → auto-restart launchd service on successful compile
+  # - Web: vite build --watch → auto-rebuild static files (refresh to see changes)
+  echo "Starting file watchers..."
+
+  (
+    cd "$REPO_ROOT/apps/controller"
+    pnpm exec tsc --watch --preserveWatchOutput 2>&1 | while IFS= read -r line; do
+      echo "[controller:tsc] $line"
+      if echo "$line" | grep -q "Found 0 errors"; then
+        echo "[controller] Restarting service..."
+        launchctl kickstart -k "$DOMAIN/$CONTROLLER_LABEL" 2>/dev/null && echo "[controller] Restarted." || true
+      fi
+    done
+  ) &
+  CONTROLLER_WATCH_PID=$!
+
+  (
+    cd "$REPO_ROOT/apps/web"
+    pnpm exec vite build --watch 2>&1 | sed 's/^/[web:vite] /'
+  ) &
+  WEB_WATCH_PID=$!
+
+  # Start Electron desktop with launchd mode (blocks until quit)
   echo "Starting Electron desktop (launchd mode)..."
+  echo ""
   cd "$REPO_ROOT"
   NEXU_USE_LAUNCHD=1 NEXU_WORKSPACE_ROOT="$REPO_ROOT" pnpm exec electron apps/desktop
 }
@@ -205,35 +229,6 @@ tail_logs() {
   fi
 }
 
-reload_controller() {
-  echo "Rebuilding controller..."
-  pnpm --filter @nexu/controller build
-  echo "Restarting controller service..."
-  if launchctl print "$DOMAIN/$CONTROLLER_LABEL" &>/dev/null; then
-    launchctl kickstart -k "$DOMAIN/$CONTROLLER_LABEL"
-    echo "Controller reloaded."
-  else
-    echo "Controller service not registered. Run 'pnpm start' first."
-  fi
-}
-
-reload_web() {
-  echo "Rebuilding web..."
-  pnpm --filter @nexu/web build
-  echo "Web rebuilt. Reload the page in the desktop app (Cmd+R or restart Electron)."
-}
-
-reload_all() {
-  echo "Rebuilding controller + web..."
-  pnpm --filter @nexu/controller build
-  pnpm --filter @nexu/web build
-  echo "Restarting controller service..."
-  if launchctl print "$DOMAIN/$CONTROLLER_LABEL" &>/dev/null; then
-    launchctl kickstart -k "$DOMAIN/$CONTROLLER_LABEL"
-  fi
-  echo "Reloaded. Restart Electron if desktop shell code changed."
-}
-
 # Main
 case "${1:-start}" in
   start)
@@ -247,15 +242,6 @@ case "${1:-start}" in
     sleep 1
     start_services
     ;;
-  reload)
-    reload_all
-    ;;
-  reload:controller)
-    reload_controller
-    ;;
-  reload:web)
-    reload_web
-    ;;
   status)
     show_status
     ;;
@@ -266,7 +252,7 @@ case "${1:-start}" in
     full_cleanup
     ;;
   *)
-    echo "Usage: $0 {start|stop|restart|reload|reload:controller|reload:web|status|logs|clean}"
+    echo "Usage: $0 {start|stop|restart|status|logs|clean}"
     exit 1
     ;;
 esac
