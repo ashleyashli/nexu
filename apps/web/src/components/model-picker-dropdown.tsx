@@ -429,7 +429,7 @@ export function ModelPickerDropdown({
                                       ? "text-[12px]"
                                       : "text-[12px] truncate",
                                     isSelected
-                                      ? "font-semibold text-brand-primary"
+                                      ? "font-semibold text-text-primary"
                                       : "font-medium text-text-primary",
                                   )}
                                 >

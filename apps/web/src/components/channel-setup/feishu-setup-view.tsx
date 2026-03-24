@@ -436,7 +436,8 @@ export function FeishuSetupView({
           rel="noopener noreferrer"
           className="text-link text-[11px]"
         >
-          {t("feishuSetup.helpText")} {t("feishuSetup.helpLinkText")}
+          {t("feishuSetup.helpText")} {t("feishuSetup.helpLinkText")}{" "}
+          {t("feishuSetup.helpSuffix")}
           <ExternalLink size={10} />
         </a>
       </div>

@@ -684,7 +684,7 @@ const en = {
 
   // ── WeChat Setup ──
   "wechatSetup.title": "Connect WeChat",
-  "wechatSetup.desc": "Scan in WeChat on your phone to connect.",
+  "wechatSetup.desc": "Scan with WeChat on your phone to connect.",
   "wechatSetup.scanQr": "Scan QR to Connect",
   "wechatSetup.scanning": "Waiting for scan...",
   "wechatSetup.scanHint":

@@ -413,7 +413,7 @@ function ArtifactCard({ summary }: { summary: string | null }) {
       data-tool-card-variant="inline-chip"
       className="mt-0.5 inline-flex max-w-full items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--color-success)_12%,transparent)] bg-[rgba(0,163,101,0.06)] px-2.5 py-1.5 text-[12px] shadow-none"
     >
-      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[rgba(0,163,101,0.12)] text-[var(--color-success)]">
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-success-muted)] text-[var(--color-success)]">
         <CheckCircle2 className="size-[13px]" />
       </span>
       <span className="min-w-0 max-w-[16rem] truncate font-medium text-text-primary">
