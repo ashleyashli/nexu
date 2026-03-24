@@ -119,6 +119,26 @@ export function startEmbeddedWebServer(
     const server = createServer(async (req, res) => {
       const url = new URL(req.url ?? "/", `http://localhost:${port}`);
 
+      // Allow cross-origin requests from vite dev server in dev mode
+      const origin = req.headers.origin;
+      if (origin) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader(
+          "Access-Control-Allow-Methods",
+          "GET, POST, PUT, DELETE, OPTIONS",
+        );
+        res.setHeader(
+          "Access-Control-Allow-Headers",
+          "Content-Type, Authorization",
+        );
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      }
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
       // Desktop local auth — better-auth client calls /api/auth/get-session
       // but there's no better-auth server in launchd mode. Return a mock
       // desktop session so the web app proceeds past AuthLayout.
