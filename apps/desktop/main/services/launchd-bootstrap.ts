@@ -228,8 +228,13 @@ export async function stopAllServices(
  * Currently controlled by environment variable.
  */
 export function isLaunchdBootstrapEnabled(): boolean {
-  // Enable via env var for gradual rollout
-  return process.env.NEXU_USE_LAUNCHD === "1";
+  // Explicitly disabled
+  if (process.env.NEXU_USE_LAUNCHD === "0") return false;
+  // Explicitly enabled (dev mode)
+  if (process.env.NEXU_USE_LAUNCHD === "1") return true;
+  // Packaged app: default to launchd on macOS
+  if (process.platform === "darwin") return true;
+  return false;
 }
 
 /**
