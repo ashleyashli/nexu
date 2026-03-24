@@ -349,26 +349,13 @@ export function compileOpenClawConfig(
       config.runtime.defaultModelId,
   );
 
-  // When the controller manages the OpenClaw process, the env port and
-  // auth mode are the source of truth (desktop may allocate a different
-  // port on each launch).  Persisted config values are only authoritative
-  // when running against an externally managed gateway.
-  const gatewayPort = env.manageOpenclawProcess
-    ? env.openclawGatewayPort
-    : config.runtime.gateway.port;
-  const gatewayAuthMode = env.manageOpenclawProcess
-    ? env.openclawGatewayToken
-      ? "token"
-      : "none"
-    : config.runtime.gateway.authMode;
-
   const openClawConfig: OpenClawConfig = {
     gateway: {
-      port: gatewayPort,
+      port: config.runtime.gateway.port,
       mode: "local",
       bind: config.runtime.gateway.bind,
       auth: {
-        mode: gatewayAuthMode,
+        mode: config.runtime.gateway.authMode,
         ...(env.openclawGatewayToken
           ? { token: env.openclawGatewayToken }
           : {}),

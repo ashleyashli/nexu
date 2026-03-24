@@ -94,7 +94,7 @@ describe("OpenClawRuntimePluginWriter", () => {
     );
   });
 
-  it("excludes all node_modules/.bin directories including real ones", async () => {
+  it("preserves real node_modules/.bin directories", async () => {
     const pluginDir = path.join(env.runtimePluginTemplatesDir, "plugin-a");
     const binDir = path.join(pluginDir, "node_modules", ".bin");
 
@@ -105,14 +105,16 @@ describe("OpenClawRuntimePluginWriter", () => {
     await writer.ensurePlugins();
 
     await expect(
-      access(
+      readFile(
         path.join(
           env.openclawExtensionsDir,
           "plugin-a",
           "node_modules",
           ".bin",
+          "tool",
         ),
+        "utf8",
       ),
-    ).rejects.toMatchObject({ code: "ENOENT" });
+    ).resolves.toBe("#!/usr/bin/env node\n");
   });
 });

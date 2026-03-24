@@ -13,6 +13,7 @@ import {
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveDistControllerPort } from "./dist-mac-env.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const electronRoot = resolve(scriptDir, "..");
@@ -443,8 +444,7 @@ async function main() {
     notarizeEnv.NEXU_APPLE_TEAM_ID = appleTeamId;
   }
 
-  const controllerPort =
-    env.NEXU_CONTROLLER_PORT ?? env.NEXU_API_PORT ?? "50800";
+  const controllerPort = resolveDistControllerPort(env);
 
   await rm(releaseRoot, rmWithRetriesOptions);
   await rm(resolve(electronRoot, ".dist-runtime"), rmWithRetriesOptions);

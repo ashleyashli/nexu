@@ -1,6 +1,15 @@
-import { cp, mkdir, readdir } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir } from "node:fs/promises";
 import path, { basename } from "node:path";
 import type { ControllerEnv } from "../app/env.js";
+
+function isNodeModulesBinPath(source: string): boolean {
+  const segments = path.normalize(source).split(path.sep);
+  return (
+    segments.length >= 2 &&
+    segments.at(-2) === "node_modules" &&
+    segments.at(-1) === ".bin"
+  );
+}
 
 export class OpenClawRuntimePluginWriter {
   constructor(private readonly env: ControllerEnv) {}
@@ -34,7 +43,14 @@ export class OpenClawRuntimePluginWriter {
         recursive: true,
         force: true,
         dereference: true,
-        filter: (source) => basename(source) !== ".bin",
+        filter: async (source) => {
+          if (!isNodeModulesBinPath(source) || basename(source) !== ".bin") {
+            return true;
+          }
+
+          const stat = await lstat(source);
+          return !stat.isSymbolicLink();
+        },
       });
     }
   }
