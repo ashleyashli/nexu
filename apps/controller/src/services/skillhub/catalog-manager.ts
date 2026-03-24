@@ -50,6 +50,12 @@ const SLUG_CORRECTIONS: Record<string, string> = {
   "find-skills": "find-skill",
 };
 
+/**
+ * Skills listed in the ClawHub catalog but no longer available for install.
+ * Filtered out from the catalog response to avoid confusing users.
+ */
+const CATALOG_BLOCKLIST = new Set(["self-improving-agent"]);
+
 const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{0,127}$/;
 
 function isValidSlug(slug: string): boolean {
@@ -741,10 +747,12 @@ export class CatalogManager {
       const skills = JSON.parse(
         readFileSync(this.catalogPath, "utf8"),
       ) as MinimalSkill[];
-      return skills.map((s) => {
-        const corrected = SLUG_CORRECTIONS[s.slug];
-        return corrected ? { ...s, slug: corrected } : s;
-      });
+      return skills
+        .filter((s) => !CATALOG_BLOCKLIST.has(s.slug))
+        .map((s) => {
+          const corrected = SLUG_CORRECTIONS[s.slug];
+          return corrected ? { ...s, slug: corrected } : s;
+        });
     } catch {
       return [];
     }
