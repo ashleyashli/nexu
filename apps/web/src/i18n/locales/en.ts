@@ -288,6 +288,9 @@ const en = {
   "models.provider.custom.description":
     "Any endpoint compatible with OpenAI API",
   "models.managed.connected": "Connected",
+  "models.managed.notConnected": "Not connected",
+  "models.managed.cloudConnectAria": "Connect to Nexu cloud",
+  "models.managed.cloudDisconnectAria": "Disconnect from Nexu cloud",
   "models.managed.loginRequired": "Login required",
   "models.managed.cloudConnected": "Connected to Nexu Cloud",
   "models.managed.cloudModelsAvailable":
@@ -680,8 +683,7 @@ const en = {
 
   // ── WeChat Setup ──
   "wechatSetup.title": "Connect WeChat",
-  "wechatSetup.desc":
-    "Scan a QR code with your WeChat mobile app to connect your personal WeChat account.",
+  "wechatSetup.desc": "Scan in WeChat on your phone to connect.",
   "wechatSetup.scanQr": "Scan QR to Connect",
   "wechatSetup.scanning": "Waiting for scan...",
   "wechatSetup.scanHint":

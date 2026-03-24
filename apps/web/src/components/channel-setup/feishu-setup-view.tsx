@@ -284,8 +284,11 @@ export function FeishuSetupView({
                 >
                   {jsonCopied ? (
                     <>
-                      <Check size={11} className="text-emerald-500" />
-                      <span className="text-emerald-500">
+                      <Check
+                        size={11}
+                        className="text-[var(--color-success)]"
+                      />
+                      <span className="text-[var(--color-success)]">
                         {t("feishuSetup.copied")}
                       </span>
                     </>

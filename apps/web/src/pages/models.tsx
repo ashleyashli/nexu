@@ -977,6 +977,7 @@ function ManagedProviderDetail({
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginBusy, setLoginBusy] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
+  const [cloudDisconnecting, setCloudDisconnecting] = useState(false);
   const queryClient = useQueryClient();
   const refreshCloudModels = useMutation({
     mutationFn: async () => {
@@ -1057,15 +1058,17 @@ function ManagedProviderDetail({
     setLoginError(null);
   };
 
+  const cloudToggleBusy = loginBusy || cloudDisconnecting;
+
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
+      {/* Header + cloud connection text action */}
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div className="flex items-center gap-3 min-w-0">
           <span className="w-8 h-8 rounded-lg flex items-center justify-center bg-surface-2 shrink-0">
             <ProviderLogo provider={provider.id} size={20} />
           </span>
-          <div>
+          <div className="min-w-0">
             <div className="text-[14px] font-semibold text-text-primary">
               {provider.name}
             </div>
@@ -1074,66 +1077,73 @@ function ManagedProviderDetail({
             </div>
           </div>
         </div>
-        <div
-          className={cn(
-            "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium",
+        <button
+          type="button"
+          disabled={cloudToggleBusy}
+          aria-busy={cloudToggleBusy}
+          aria-label={
             cloudConnected
-              ? "border border-emerald-500/20 bg-emerald-500/8 text-emerald-600"
-              : "border border-accent/20 bg-accent/8 text-accent",
+              ? t("models.managed.cloudDisconnectAria")
+              : t("models.managed.cloudConnectAria")
+          }
+          onClick={async () => {
+            if (cloudConnected) {
+              if (cloudDisconnecting) return;
+              setCloudDisconnecting(true);
+              try {
+                await postApiInternalDesktopCloudDisconnect().catch(() => {});
+                setCloudConnected(false);
+                queryClient.invalidateQueries({ queryKey: ["models"] });
+                queryClient.invalidateQueries({
+                  queryKey: ["desktop-default-model"],
+                });
+              } finally {
+                setCloudDisconnecting(false);
+              }
+            } else if (!loginBusy) {
+              void handleLogin();
+            }
+          }}
+          className={cn(
+            "inline-flex items-center gap-1.5 max-w-[min(100%,11rem)] text-[12px] font-medium shrink-0 rounded-md px-1 py-0.5 -mr-1 transition-colors cursor-pointer text-left disabled:cursor-not-allowed disabled:opacity-60",
+            cloudConnected
+              ? "text-[var(--color-brand-primary)] hover:underline"
+              : "text-text-secondary hover:text-[var(--color-brand-primary)]",
           )}
         >
-          {cloudConnected
-            ? t("models.managed.connected")
-            : t("models.managed.loginRequired")}
-        </div>
+          {(cloudDisconnecting || loginBusy) && (
+            <Loader2 size={12} className="animate-spin shrink-0" />
+          )}
+          <span className="truncate">
+            {loginBusy
+              ? t("models.managed.waitingLogin")
+              : cloudConnected
+                ? t("models.managed.connected")
+                : t("models.managed.notConnected")}
+          </span>
+        </button>
       </div>
 
-      {/* Login / connected card */}
+      {/* Login prompt / connected helper + refresh */}
       {cloudConnected ? (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                <Check size={12} className="text-emerald-500" />
-              </div>
-              <div className="text-[13px] font-semibold text-emerald-600">
-                {t("models.managed.cloudConnected")}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  refreshCloudModels.mutate();
-                }}
-                disabled={refreshCloudModels.isPending}
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors cursor-pointer"
-              >
-                <RefreshCw
-                  size={11}
-                  className={cn(refreshCloudModels.isPending && "animate-spin")}
-                />
-                {t("models.managed.refresh")}
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await postApiInternalDesktopCloudDisconnect().catch(() => {});
-                  setCloudConnected(false);
-                  queryClient.invalidateQueries({ queryKey: ["models"] });
-                  queryClient.invalidateQueries({
-                    queryKey: ["desktop-default-model"],
-                  });
-                }}
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium text-red-500/70 hover:text-red-500 hover:bg-red-500/5 transition-colors cursor-pointer"
-              >
-                {t("models.managed.disconnect")}
-              </button>
-            </div>
-          </div>
-          <div className="text-[12px] text-text-secondary mt-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <p className="text-[12px] text-text-secondary flex-1">
             {t("models.managed.cloudModelsAvailable")}
-          </div>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              refreshCloudModels.mutate();
+            }}
+            disabled={refreshCloudModels.isPending}
+            className="inline-flex items-center justify-center gap-1.5 self-start rounded-md border border-border bg-surface-0 px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-surface-1 transition-colors cursor-pointer shrink-0"
+          >
+            <RefreshCw
+              size={11}
+              className={cn(refreshCloudModels.isPending && "animate-spin")}
+            />
+            {t("models.managed.refresh")}
+          </button>
         </div>
       ) : (
         <div className="rounded-xl border border-[var(--color-brand-primary)]/25 bg-[var(--color-brand-subtle)] px-4 py-4 mb-6">
@@ -1435,7 +1445,7 @@ function ByokProviderDetail({
                 {verifyMutation.isPending ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : verifyMutation.isSuccess && verifyMutation.data?.valid ? (
-                  <Check size={12} className="text-emerald-600" />
+                  <Check size={12} className="text-[var(--color-success)]" />
                 ) : (
                   t("models.byok.verify")
                 )}
@@ -1447,7 +1457,7 @@ function ByokProviderDetail({
               className={cn(
                 "mt-1.5 text-[10px]",
                 verifyMutation.data?.valid
-                  ? "text-emerald-600"
+                  ? "text-[var(--color-success)]"
                   : "text-red-500",
               )}
             >
@@ -1526,7 +1536,7 @@ function ByokProviderDetail({
       </div>
 
       {saveMutation.isSuccess && (
-        <div className="mb-4 text-[11px] text-emerald-600">
+        <div className="mb-4 text-[11px] text-[var(--color-success)]">
           {t("models.byok.saveSuccess")}
         </div>
       )}

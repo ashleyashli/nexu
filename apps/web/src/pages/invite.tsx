@@ -167,8 +167,11 @@ export function InvitePage() {
           <div className="w-full max-w-[360px]">
             {success ? (
               <div className="text-center">
-                <div className="flex justify-center items-center mx-auto mb-5 w-16 h-16 rounded-2xl bg-emerald-500/10">
-                  <CheckCircle2 size={32} className="text-emerald-500" />
+                <div className="flex justify-center items-center mx-auto mb-5 w-16 h-16 rounded-2xl bg-[var(--color-success-muted)]">
+                  <CheckCircle2
+                    size={32}
+                    className="text-[var(--color-success)]"
+                  />
                 </div>
                 <h1 className="mb-2 text-2xl font-bold text-text-primary">
                   Welcome to Nexu!

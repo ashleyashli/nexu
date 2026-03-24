@@ -743,7 +743,7 @@ function WorkspaceLayoutInner() {
                     </div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {s.status === "active" && (
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-success)] shrink-0" />
                       )}
                     </div>
                   </button>
@@ -1103,7 +1103,7 @@ function WorkspaceLayoutInner() {
                             </div>
                           </div>
                           {s.status === "active" ? (
-                            <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500" />
+                            <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--color-success)]" />
                           ) : (
                             <div className="w-1.5 h-1.5 rounded-full shrink-0 bg-text-muted/30" />
                           )}

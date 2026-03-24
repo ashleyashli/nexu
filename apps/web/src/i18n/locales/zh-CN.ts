@@ -277,6 +277,9 @@ const zhCN = {
   "models.provider.custom.name": "自定义服务商",
   "models.provider.custom.description": "任何兼容 OpenAI 的 API 端点",
   "models.managed.connected": "已连接",
+  "models.managed.notConnected": "未连接",
+  "models.managed.cloudConnectAria": "连接 Nexu 云端",
+  "models.managed.cloudDisconnectAria": "断开 Nexu 云端",
   "models.managed.loginRequired": "登录后可用",
   "models.managed.cloudConnected": "已连接 Nexu 云端",
   "models.managed.cloudModelsAvailable": "云端模型已可用，可在下方查看和管理。",
@@ -647,7 +650,7 @@ const zhCN = {
 
   // ── WeChat Setup ──
   "wechatSetup.title": "连接微信",
-  "wechatSetup.desc": "使用微信手机端扫码，连接你的个人微信账号。",
+  "wechatSetup.desc": "用手机微信扫码即可连接。",
   "wechatSetup.scanQr": "扫码连接",
   "wechatSetup.scanning": "等待扫码...",
   "wechatSetup.scanHint": "打开手机微信，扫描上方二维码以关联账号。",

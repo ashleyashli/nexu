@@ -218,7 +218,7 @@ export function SkillsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 150);
-  const [topTab, setTopTab] = useState<TopTab>("explore");
+  const [topTab, setTopTab] = useState<TopTab>("yours");
   const [yoursSubTab, setYoursSubTab] = useState<YoursSubTab>("all");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -504,19 +504,19 @@ export function SkillsPage() {
           </div>
         </div>
 
-        {/* Top-level tabs: Explore / Yours — segment control */}
+        {/* Top-level tabs: Yours / Explore — segment control */}
         <div className="inline-flex items-center gap-1 p-1 rounded-full bg-surface-2 mb-4">
           {(
             [
               {
-                id: "explore" as const,
-                label: t("skills.explore"),
-                icon: Compass,
-              },
-              {
                 id: "yours" as const,
                 label: t("skills.yours"),
                 icon: Settings2,
+              },
+              {
+                id: "explore" as const,
+                label: t("skills.explore"),
+                icon: Compass,
               },
             ] as const
           ).map((tab) => {
