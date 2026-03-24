@@ -26,7 +26,7 @@ CONTROLLER_PORT="${CONTROLLER_PORT:-50800}"
 OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 
 # Paths
-NODE_PATH="${NODE_PATH:-$(which node)}"
+NODE_BIN="${NODE_BIN:-$(which node)}"
 CONTROLLER_ENTRY="$REPO_ROOT/apps/controller/dist/index.js"
 OPENCLAW_PATH="$REPO_ROOT/openclaw-runtime/node_modules/openclaw/openclaw.mjs"
 # Must match controller defaults in apps/controller/src/app/env.ts

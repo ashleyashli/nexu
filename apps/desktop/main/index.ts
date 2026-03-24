@@ -861,19 +861,6 @@ app.whenReady().then(async () => {
 
       if (useLaunchd) {
         await runLaunchdColdStart();
-        // Install launchd quit handler after successful bootstrap
-        if (launchdResult) {
-          installLaunchdQuitHandler({
-            launchd: launchdResult.launchd,
-            labels: launchdResult.labels,
-            webServer: launchdResult.webServer,
-            onBeforeQuit: async () => {
-              sleepGuard?.dispose("launchd-quit");
-              await diagnosticsReporter?.flushNow().catch(() => undefined);
-              flushRuntimeLoggers();
-            },
-          });
-        }
       } else {
         await runDesktopColdStart();
       }
@@ -890,6 +877,21 @@ app.whenReady().then(async () => {
         message: error instanceof Error ? error.message : String(error),
         logFilePath: getDesktopLogFilePath("cold-start.log"),
         windowId: getMainWindowId(),
+      });
+    }
+
+    // Install launchd quit handler regardless of cold-start success/failure
+    // so services can always be stopped cleanly on quit.
+    if (launchdResult) {
+      installLaunchdQuitHandler({
+        launchd: launchdResult.launchd,
+        labels: launchdResult.labels,
+        webServer: launchdResult.webServer,
+        onBeforeQuit: async () => {
+          sleepGuard?.dispose("launchd-quit");
+          await diagnosticsReporter?.flushNow().catch(() => undefined);
+          flushRuntimeLoggers();
+        },
       });
     }
 

@@ -128,8 +128,16 @@ export function startEmbeddedWebServer(
         return proxyToController(req, res, controllerUrl);
       }
 
-      // Static files
-      let filePath = path.join(webRoot, url.pathname);
+      // Static files — sanitize to prevent path traversal
+      const normalized = path
+        .normalize(url.pathname)
+        .replace(/^(\.\.[/\\])+/, "");
+      let filePath = path.join(webRoot, normalized);
+      if (!filePath.startsWith(webRoot)) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return;
+      }
 
       // SPA fallback: if file doesn't exist or is directory, serve index.html
       const exists = await fileExists(filePath);

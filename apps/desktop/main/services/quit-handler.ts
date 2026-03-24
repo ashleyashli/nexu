@@ -157,17 +157,25 @@ export async function quitWithDecision(
   decision: "quit-completely" | "run-in-background",
   opts: QuitHandlerOptions,
 ): Promise<void> {
-  if (opts.onBeforeQuit) {
-    await opts.onBeforeQuit();
+  try {
+    await opts.onBeforeQuit?.();
+  } catch (err) {
+    console.error("Error in onBeforeQuit:", err);
   }
 
-  if (opts.webServer) {
-    await opts.webServer.close();
+  try {
+    await opts.webServer?.close();
+  } catch (err) {
+    console.error("Error closing web server:", err);
   }
 
   if (decision === "quit-completely") {
-    await opts.launchd.stopServiceGracefully(opts.labels.openclaw);
-    await opts.launchd.stopServiceGracefully(opts.labels.controller);
+    try {
+      await opts.launchd.stopServiceGracefully(opts.labels.openclaw);
+      await opts.launchd.stopServiceGracefully(opts.labels.controller);
+    } catch (err) {
+      console.error("Error stopping services:", err);
+    }
   }
 
   app.quit();
