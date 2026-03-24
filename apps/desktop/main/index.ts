@@ -912,6 +912,9 @@ app.whenReady().then(async () => {
           await diagnosticsReporter?.flushNow().catch(() => undefined);
           flushRuntimeLoggers();
         },
+        onForceQuit: () => {
+          forceQuit = true;
+        },
       });
     }
 
@@ -951,7 +954,6 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", (event) => {
-  forceQuit = true;
   sleepGuard?.dispose("app-before-quit");
   void diagnosticsReporter?.flushNow().catch(() => undefined);
   flushRuntimeLoggers();

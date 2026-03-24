@@ -20,6 +20,8 @@ export interface QuitHandlerOptions {
   webServer?: EmbeddedWebServer;
   /** Called before quitting to flush logs, etc */
   onBeforeQuit?: () => void | Promise<void>;
+  /** Called to signal that the app should actually close windows on quit */
+  onForceQuit?: () => void;
 }
 
 export type QuitDecision = "quit-completely" | "run-in-background" | "cancel";
@@ -147,7 +149,9 @@ export function installLaunchdQuitHandler(opts: QuitHandlerOptions): void {
       return;
     }
 
-    // Remove handler and quit (only for "quit-completely")
+    // Signal force quit so window close handlers don't intercept
+    opts.onForceQuit?.();
+    // Remove handler and quit
     app.removeAllListeners("before-quit");
     app.quit();
   });
