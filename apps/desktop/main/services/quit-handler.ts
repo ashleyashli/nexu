@@ -155,9 +155,12 @@ export function installLaunchdQuitHandler(opts: QuitHandlerOptions): void {
   }
 
   // Intercept Cmd+Q / Dock "Quit" — redirect to window close handler
-  // which shows the dialog.
+  // which shows the quit dialog (packaged only).
   app.on("before-quit", (event) => {
     if ((app as unknown as Record<string, unknown>).__nexuForceQuit) return;
+    // Dev mode: let quit proceed normally
+    if (!app.isPackaged) return;
+    // Packaged: prevent quit, show dialog via window close
     event.preventDefault();
     const win = BrowserWindow.getAllWindows()[0];
     if (win) {
