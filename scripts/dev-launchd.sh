@@ -53,9 +53,14 @@ full_cleanup() {
 
   sleep 1
 
-  # 3. Kill any remaining orphan processes
+  # 3. Kill any remaining orphan processes (including global openclaw)
   pkill -9 -f "openclaw.mjs gateway" 2>/dev/null || true
   pkill -9 -f "controller/dist/index.js" 2>/dev/null || true
+  # Also stop global openclaw gateway if it's occupying our port
+  if lsof -i ":$OPENCLAW_PORT" -P -n &>/dev/null; then
+    echo "  Port $OPENCLAW_PORT occupied — killing occupying process..."
+    lsof -ti ":$OPENCLAW_PORT" | xargs kill -9 2>/dev/null || true
+  fi
   pkill -9 -f "chrome_crashpad_handler" 2>/dev/null || true
 
   # 4. Wait for ports to be free (with timeout)
