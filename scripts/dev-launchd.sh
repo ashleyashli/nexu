@@ -12,7 +12,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-LOG_DIR="$HOME/.nexu/logs"
+DEV_NEXU_HOME="$REPO_ROOT/.tmp/desktop/nexu-home"
+LOG_DIR="$REPO_ROOT/.tmp/desktop/logs"
 PLIST_DIR="$REPO_ROOT/.tmp/launchd"
 UID_VAL=$(id -u)
 DOMAIN="gui/$UID_VAL"
@@ -29,11 +30,11 @@ OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
 NODE_BIN="${NODE_BIN:-$(which node)}"
 CONTROLLER_ENTRY="$REPO_ROOT/apps/controller/dist/index.js"
 OPENCLAW_PATH="$REPO_ROOT/openclaw-runtime/node_modules/openclaw/openclaw.mjs"
-# Must match controller defaults in apps/controller/src/app/env.ts
-OPENCLAW_STATE_DIR="$HOME/.nexu/runtime/openclaw/state"
+# Dev state dirs — repo-scoped, isolated from packaged app's ~/.nexu/
+OPENCLAW_STATE_DIR="$DEV_NEXU_HOME/runtime/openclaw/state"
 OPENCLAW_CONFIG="$OPENCLAW_STATE_DIR/openclaw.json"
 
-mkdir -p "$LOG_DIR" "$PLIST_DIR" "$OPENCLAW_STATE_DIR"
+mkdir -p "$LOG_DIR" "$PLIST_DIR" "$OPENCLAW_STATE_DIR" "$DEV_NEXU_HOME"
 
 # Full cleanup - stops and removes all related services and processes
 full_cleanup() {
@@ -186,7 +187,7 @@ start_services() {
   echo "Starting Electron desktop (launchd mode)..."
   echo ""
   cd "$REPO_ROOT"
-  NEXU_USE_LAUNCHD=1 NEXU_WORKSPACE_ROOT="$REPO_ROOT" pnpm exec electron apps/desktop
+  NEXU_USE_LAUNCHD=1 NEXU_WORKSPACE_ROOT="$REPO_ROOT" NEXU_HOME="$DEV_NEXU_HOME" pnpm exec electron apps/desktop
 }
 
 show_status() {

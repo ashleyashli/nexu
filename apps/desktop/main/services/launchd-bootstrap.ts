@@ -45,6 +45,8 @@ export interface LaunchdBootstrapEnv {
   controllerCwd: string;
   /** OpenClaw working directory */
   openclawCwd: string;
+  /** NEXU_HOME override for controller (dev: repo-local path) */
+  nexuHome?: string;
   /** Gateway auth token */
   gatewayToken?: string;
   /** Plist directory (default: ~/Library/LaunchAgents or repo-local for dev) */
@@ -151,6 +153,7 @@ export async function bootstrapWithLaunchd(
     openclawStateDir: env.openclawStateDir,
     controllerCwd: env.controllerCwd,
     openclawCwd: env.openclawCwd,
+    nexuHome: env.nexuHome,
     gatewayToken: env.gatewayToken,
     systemPath,
     nodeModulesPath,
