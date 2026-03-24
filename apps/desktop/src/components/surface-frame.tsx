@@ -121,11 +121,10 @@ export function SurfaceFrame({
             alignItems: "center",
             justifyContent: "center",
             height: "100%",
-            background:
-              "radial-gradient(ellipse at 50% 40%, #141c28 0%, #0c1016 70%)",
+            background: "#ffffff",
           }}
         >
-          <NexuLoader size={56} />
+          <NexuLoader size={96} />
         </div>
       )}
     </section>
