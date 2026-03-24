@@ -35,7 +35,6 @@ import { ArtifactsStore } from "../store/artifacts-store.js";
 import { CompiledOpenClawStore } from "../store/compiled-openclaw-store.js";
 import { NexuConfigStore } from "../store/nexu-config-store.js";
 import { type ControllerEnv, env } from "./env.js";
-import { syncManagedRuntimeGatewayOnStartup } from "./runtime-gateway-sync.js";
 
 export interface ControllerContainer {
   env: ControllerEnv;
@@ -67,7 +66,12 @@ export interface ControllerContainer {
 export async function createContainer(): Promise<ControllerContainer> {
   const configStore = new NexuConfigStore(env);
   await configStore.reconcileConfiguredDesktopCloudState();
-  await syncManagedRuntimeGatewayOnStartup(configStore, env);
+  if (env.manageOpenclawProcess) {
+    await configStore.syncManagedRuntimeGateway({
+      port: env.openclawGatewayPort,
+      authMode: env.openclawGatewayToken ? "token" : "none",
+    });
+  }
   const artifactsStore = new ArtifactsStore(env);
   const compiledStore = new CompiledOpenClawStore(env);
   const configWriter = new OpenClawConfigWriter(env);

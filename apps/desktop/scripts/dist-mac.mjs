@@ -13,7 +13,6 @@ import {
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { resolveDistControllerPort } from "./dist-mac-env.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const electronRoot = resolve(scriptDir, "..");
@@ -444,8 +443,6 @@ async function main() {
     notarizeEnv.NEXU_APPLE_TEAM_ID = appleTeamId;
   }
 
-  const controllerPort = resolveDistControllerPort(env);
-
   await rm(releaseRoot, rmWithRetriesOptions);
   await rm(resolve(electronRoot, ".dist-runtime"), rmWithRetriesOptions);
 
@@ -463,11 +460,7 @@ async function main() {
     env,
   });
   await run("pnpm", ["--dir", repoRoot, "--filter", "@nexu/web", "build"], {
-    env: {
-      ...env,
-      VITE_API_BASE_URL: `http://127.0.0.1:${controllerPort}`,
-      VITE_AUTH_BASE_URL: `http://127.0.0.1:${controllerPort}`,
-    },
+    env,
   });
   await run("pnpm", ["run", "build"], { cwd: electronRoot, env });
   await run("node", [resolve(scriptDir, "upload-sourcemaps.mjs")], {
