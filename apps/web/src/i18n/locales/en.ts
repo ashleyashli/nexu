@@ -174,6 +174,8 @@ const en = {
   "home.channel.slack": "Slack",
   "home.channel.discord": "Discord",
   "home.channel.wechat": "WeChat",
+  "home.channel.telegram": "Telegram",
+  "home.channel.whatsapp": "WhatsApp",
   "home.channel.addBot": "Add nexu Bot",
   "home.tab.channels": "Channels",
   "home.tab.models": "Models & Key",
@@ -338,7 +340,7 @@ const en = {
   "channels.pageTitle": "Channels",
   "channels.pageSubtitle":
     "Connect your messaging platforms and let nexu 🦞 join your workspace",
-  "channels.comingSoon": "Telegram, Microsoft Teams, Line and more coming soon",
+  "channels.comingSoon": "Microsoft Teams, Line and more coming soon",
   "channels.backToConfig": "Back to configuration",
   "channels.statusConnected": "{{platform}} Bot Connected",
   "channels.configuredDate": "configured {{date}}",

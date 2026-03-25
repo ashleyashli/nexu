@@ -1,10 +1,16 @@
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type {
   BotQuotaResponse,
   ChannelResponse,
   ConnectDiscordInput,
   ConnectFeishuInput,
   ConnectSlackInput,
+  ConnectTelegramInput,
 } from "@nexu/shared";
+import type { ControllerEnv } from "../app/env.js";
 import type { NexuConfigStore } from "../store/nexu-config-store.js";
 import type { OpenClawSyncService } from "./openclaw-sync-service.js";
 
@@ -12,8 +18,105 @@ function timeoutSignal(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
 }
 
+const DEFAULT_WHATSAPP_ACCOUNT_ID = "default";
+
+type TelegramGetMeResponse = {
+  ok: boolean;
+  description?: string;
+  result?: {
+    id?: number;
+    username?: string;
+    first_name?: string;
+  };
+};
+
+type WhatsappLoginModule = {
+  startWebLoginWithQr: (opts?: {
+    verbose?: boolean;
+    timeoutMs?: number;
+    force?: boolean;
+    accountId?: string;
+  }) => Promise<{ qrDataUrl?: string; message: string }>;
+  waitForWebLogin: (opts?: {
+    timeoutMs?: number;
+    accountId?: string;
+  }) => Promise<{ connected: boolean; message: string }>;
+};
+
+function isFsPath(value: string): boolean {
+  return value.includes(path.sep) || value.startsWith(".");
+}
+
+function resolveOpenClawPackageDir(env: ControllerEnv): string {
+  const candidates = isFsPath(env.openclawBin)
+    ? [
+        path.resolve(
+          path.dirname(path.resolve(env.openclawBin)),
+          "..",
+          "node_modules",
+          "openclaw",
+        ),
+        path.resolve(
+          path.dirname(path.resolve(env.openclawBin)),
+          "openclaw-runtime",
+          "node_modules",
+          "openclaw",
+        ),
+      ]
+    : [
+        path.resolve(
+          process.cwd(),
+          "openclaw-runtime",
+          "node_modules",
+          "openclaw",
+        ),
+      ];
+
+  const matched = candidates.find((candidate) =>
+    existsSync(path.join(candidate, "package.json")),
+  );
+  if (!matched) {
+    throw new Error("OpenClaw package root not found for WhatsApp login");
+  }
+  return matched;
+}
+
+async function loadWhatsappLoginModule(
+  env: ControllerEnv,
+): Promise<WhatsappLoginModule> {
+  const pluginSdkDir = path.join(
+    resolveOpenClawPackageDir(env),
+    "dist",
+    "plugin-sdk",
+  );
+  const entries = await readdir(pluginSdkDir);
+  const loginChunk = entries
+    .filter(
+      (entry) =>
+        entry.startsWith("login-qr-") && entry.toLowerCase().endsWith(".js"),
+    )
+    .sort()[0];
+
+  if (!loginChunk) {
+    throw new Error("OpenClaw WhatsApp login module not found");
+  }
+
+  const modulePath = path.join(pluginSdkDir, loginChunk);
+  const loaded = (await import(pathToFileURL(modulePath).href)) as unknown;
+  if (
+    typeof loaded !== "object" ||
+    loaded === null ||
+    !("startWebLoginWithQr" in loaded) ||
+    !("waitForWebLogin" in loaded)
+  ) {
+    throw new Error("OpenClaw WhatsApp login module is invalid");
+  }
+  return loaded as WhatsappLoginModule;
+}
+
 export class ChannelService {
   constructor(
+    private readonly env: ControllerEnv,
     private readonly configStore: NexuConfigStore,
     private readonly syncService: OpenClawSyncService,
   ) {}
@@ -126,6 +229,75 @@ export class ChannelService {
 
   async connectWechat(accountId: string) {
     const channel = await this.configStore.connectWechat({ accountId });
+    await this.syncService.writePlatformTemplatesForBot(channel.botId);
+    await this.syncService.syncAll();
+    return channel;
+  }
+
+  async connectTelegram(input: ConnectTelegramInput) {
+    const response = await fetch(
+      `https://api.telegram.org/bot${encodeURIComponent(input.botToken)}/getMe`,
+      {
+        signal: timeoutSignal(5000),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401
+          ? "Invalid Telegram bot token"
+          : `Telegram API error (${response.status})`,
+      );
+    }
+
+    const payload = (await response.json()) as TelegramGetMeResponse;
+    if (!payload.ok || !payload.result?.id) {
+      throw new Error(payload.description ?? "Invalid Telegram bot token");
+    }
+
+    const channel = await this.configStore.connectTelegram({
+      botToken: input.botToken,
+      telegramBotId: String(payload.result.id),
+      botUsername: payload.result.username ?? null,
+      displayName:
+        payload.result.username?.trim() ||
+        payload.result.first_name?.trim() ||
+        null,
+    });
+    await this.syncService.writePlatformTemplatesForBot(channel.botId);
+    await this.syncService.syncAll();
+    return channel;
+  }
+
+  async whatsappQrStart() {
+    const login = await loadWhatsappLoginModule(this.env);
+    const result = await login.startWebLoginWithQr({
+      accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
+      timeoutMs: 30_000,
+    });
+    const alreadyLinked =
+      !result.qrDataUrl &&
+      result.message.toLowerCase().includes("already linked");
+    return {
+      ...result,
+      accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
+      alreadyLinked,
+    };
+  }
+
+  async whatsappQrWait(accountId: string) {
+    const login = await loadWhatsappLoginModule(this.env);
+    const result = await login.waitForWebLogin({
+      accountId,
+      timeoutMs: 500_000,
+    });
+    return {
+      ...result,
+      accountId,
+    };
+  }
+
+  async connectWhatsapp(accountId: string) {
+    const channel = await this.configStore.connectWhatsapp({ accountId });
     await this.syncService.writePlatformTemplatesForBot(channel.botId);
     await this.syncService.syncAll();
     return channel;

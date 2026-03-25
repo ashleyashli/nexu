@@ -171,6 +171,8 @@ const zhCN = {
   "home.channel.slack": "Slack",
   "home.channel.discord": "Discord",
   "home.channel.wechat": "微信",
+  "home.channel.telegram": "Telegram",
+  "home.channel.whatsapp": "WhatsApp",
   "home.channel.addBot": "添加 nexu Bot",
   "home.tab.channels": "渠道",
   "home.tab.models": "模型 & Key",
@@ -324,7 +326,7 @@ const zhCN = {
   // ── Channels Page ──
   "channels.pageTitle": "渠道",
   "channels.pageSubtitle": "连接你的消息平台，让 nexu 🦞 加入你的工作区",
-  "channels.comingSoon": "Telegram、Microsoft Teams、Line 等更多平台即将支持",
+  "channels.comingSoon": "Microsoft Teams、Line 等更多平台即将支持",
   "channels.backToConfig": "返回配置",
   "channels.statusConnected": "{{platform}} Bot 已连接",
   "channels.configuredDate": "配置于 {{date}}",

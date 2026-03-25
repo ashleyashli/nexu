@@ -1,9 +1,15 @@
 import { ActivityFeed } from "@/components/activity-feed";
 import { ChannelConnectModal } from "@/components/channel-connect-modal";
+import { TelegramSetupView } from "@/components/channel-setup/telegram-setup-view";
 import { WechatSetupView } from "@/components/channel-setup/wechat-setup-view";
+import { WhatsappSetupView } from "@/components/channel-setup/whatsapp-setup-view";
 import { GitHubStarCta } from "@/components/github-star-cta";
 import { InlineModelSelector } from "@/components/inline-model-selector";
-import { WechatIcon } from "@/components/platform-icons";
+import {
+  TelegramIcon,
+  WechatIcon,
+  WhatsAppIcon,
+} from "@/components/platform-icons";
 import { useGitHubStars } from "@/hooks/use-github-stars";
 import { getChannelChatUrl } from "@/lib/channel-links";
 import { normalizeChannel, track } from "@/lib/tracking";
@@ -110,6 +116,9 @@ const FEISHU_ICON = (
     style={{ objectFit: "contain" }}
   />
 );
+
+const TELEGRAM_ICON = <TelegramIcon size={16} />;
+const WHATSAPP_ICON = <WhatsAppIcon size={16} />;
 /** WeChat mark uses a wide viewBox; bump px so it matches visual weight of 16px square logos. */
 type HomeChannelIconBox = "standard" | "compact";
 
@@ -128,6 +137,18 @@ const ONBOARDING_CHANNELS = [
     id: "wechat",
     name: "WeChat",
     recommended: true,
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    icon: WHATSAPP_ICON,
+    recommended: false,
+  },
+  {
+    id: "telegram",
+    name: "Telegram",
+    icon: TELEGRAM_ICON,
+    recommended: false,
   },
   {
     id: "feishu",
@@ -155,6 +176,18 @@ function getChannelOptions(t: (key: string) => string) {
       id: "wechat",
       name: t("home.channel.wechat"),
       recommended: true,
+    },
+    {
+      id: "whatsapp",
+      name: t("home.channel.whatsapp"),
+      icon: WHATSAPP_ICON,
+      recommended: false,
+    },
+    {
+      id: "telegram",
+      name: t("home.channel.telegram"),
+      icon: TELEGRAM_ICON,
+      recommended: false,
     },
     {
       id: "feishu",
@@ -234,6 +267,8 @@ export function HomePage() {
     "feishu" | "slack" | "discord" | null
   >(null);
   const [wechatQrOpen, setWechatQrOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoHover, setVideoHover] = useState(false);
@@ -618,6 +653,10 @@ export function HomePage() {
                     onClick={() => {
                       if (ch.id === "wechat") {
                         setWechatQrOpen(true);
+                      } else if (ch.id === "telegram") {
+                        setTelegramOpen(true);
+                      } else if (ch.id === "whatsapp") {
+                        setWhatsappOpen(true);
                       } else {
                         setModalChannel(
                           ch.id as "feishu" | "slack" | "discord",
@@ -669,6 +708,26 @@ export function HomePage() {
               handleConnected();
             }}
             gatewayReady={runtimeData?.status === "active"}
+          />
+        )}
+
+        {telegramOpen && (
+          <TelegramModal
+            onClose={() => setTelegramOpen(false)}
+            onConnected={() => {
+              setTelegramOpen(false);
+              void handleConnected();
+            }}
+          />
+        )}
+
+        {whatsappOpen && (
+          <WhatsappModal
+            onClose={() => setWhatsappOpen(false)}
+            onConnected={() => {
+              setWhatsappOpen(false);
+              void handleConnected();
+            }}
           />
         )}
       </div>
@@ -902,6 +961,10 @@ export function HomePage() {
                         }
                         if (ch.id === "wechat") {
                           setWechatQrOpen(true);
+                        } else if (ch.id === "telegram") {
+                          setTelegramOpen(true);
+                        } else if (ch.id === "whatsapp") {
+                          setWhatsappOpen(true);
                         } else {
                           setModalChannel(
                             ch.id as "feishu" | "slack" | "discord",
@@ -958,6 +1021,26 @@ export function HomePage() {
           onConnected={() => {
             setWechatQrOpen(false);
             handleConnected();
+          }}
+        />
+      )}
+
+      {telegramOpen && (
+        <TelegramModal
+          onClose={() => setTelegramOpen(false)}
+          onConnected={() => {
+            setTelegramOpen(false);
+            void handleConnected();
+          }}
+        />
+      )}
+
+      {whatsappOpen && (
+        <WhatsappModal
+          onClose={() => setWhatsappOpen(false)}
+          onConnected={() => {
+            setWhatsappOpen(false);
+            void handleConnected();
           }}
         />
       )}
@@ -1028,6 +1111,66 @@ function WechatQrModal({
             gatewayReady={gatewayReady}
             showHeader={false}
           />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelegramModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="w-full max-w-[560px] rounded-2xl border border-border bg-surface-1 shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="text-[14px] font-semibold text-text-primary">
+            Connect Telegram
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-text-primary transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5">
+          <TelegramSetupView onConnected={onConnected} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhatsappModal({
+  onClose,
+  onConnected,
+}: {
+  onClose: () => void;
+  onConnected: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="w-full max-w-[560px] rounded-2xl border border-border bg-surface-1 shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="text-[14px] font-semibold text-text-primary">
+            Connect WhatsApp
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-muted hover:text-text-primary transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5">
+          <WhatsappSetupView onConnected={onConnected} />
         </div>
       </div>
     </div>
