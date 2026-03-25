@@ -74,6 +74,27 @@ export class ModelProviderService {
   async listModels() {
     const config = await this.configStore.getConfig();
     const desktopCloud = await this.configStore.getDesktopCloudStatus();
+    const providers = config.providers.filter((provider) => provider.enabled);
+    const { cloudModels, byokModels } = await this.getAvailableModels(
+      providers,
+      desktopCloud,
+    );
+
+    return {
+      models: [...cloudModels, ...byokModels],
+    };
+  }
+
+  private async getAvailableModels(
+    providers: ReadonlyArray<{
+      providerId: string;
+      apiKey: string | null;
+      models: string[];
+    }>,
+    desktopCloud: {
+      models?: Array<{ id: string; name?: string | null }> | null;
+    },
+  ): Promise<{ cloudModels: Model[]; byokModels: Model[] }> {
     const cloudModels: Model[] = (desktopCloud.models ?? []).map((model) => ({
       id: model.id,
       name: model.name || model.id,
@@ -81,9 +102,6 @@ export class ModelProviderService {
       description: "Cloud model via Nexu Link",
     }));
 
-    const providers = config.providers.filter((provider) => provider.enabled);
-
-    // Exclude OAuth-only providers whose token has expired
     const expiredOAuthProviderIds =
       await this.getExpiredOAuthProviderIds(providers);
 
@@ -97,9 +115,7 @@ export class ModelProviderService {
         })),
       );
 
-    return {
-      models: [...cloudModels, ...byokModels],
-    };
+    return { cloudModels, byokModels };
   }
 
   /**
@@ -215,18 +231,9 @@ export class ModelProviderService {
       return "unknown";
     }
 
-    const cloudModels: Model[] = (desktopCloud.models ?? []).map((model) => ({
-      id: model.id,
-      name: model.name || model.id,
-      provider: "nexu",
-      description: "Cloud model via Nexu Link",
-    }));
-    const byokModels: Model[] = providers.flatMap((provider) =>
-      provider.models.map((modelId) => ({
-        id: `${provider.providerId}/${modelId}`,
-        name: modelId,
-        provider: provider.providerId,
-      })),
+    const { cloudModels, byokModels } = await this.getAvailableModels(
+      providers,
+      desktopCloud,
     );
     const knownModels = [...cloudModels, ...byokModels];
 

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { getApiV1SkillhubSkillsBySlug } from "../../lib/api/sdk.gen";
 
 type SkillDetail = {
@@ -285,7 +285,6 @@ function SkillMdPreview({ content }: { content: string }) {
 
 export function CommunitySkillDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { t, locale } = useLocale();
   const installMutation = useInstallSkill();
   const uninstallMutation = useUninstallSkill();
@@ -339,14 +338,13 @@ export function CommunitySkillDetailPage() {
     return (
       <div className="min-h-full bg-surface-0">
         <div className="max-w-3xl mx-auto px-6 py-8">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
+          <Link
+            to="/workspace/skills"
             className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text-primary transition-colors mb-6"
           >
             <ArrowLeft size={14} />
             {t("skillDetail.backToSkills")}
-          </button>
+          </Link>
           <p className="text-[14px] text-text-muted">
             {t("skillDetail.notFound")}
           </p>
@@ -359,14 +357,13 @@ export function CommunitySkillDetailPage() {
     <div className="min-h-full bg-surface-0">
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Back link */}
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
+        <Link
+          to="/workspace/skills"
           className="inline-flex items-center gap-1.5 text-[13px] text-text-muted hover:text-text-primary transition-colors mb-6"
         >
           <ArrowLeft size={14} />
           {t("skillDetail.backToSkills")}
-        </button>
+        </Link>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6">

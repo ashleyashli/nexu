@@ -718,7 +718,7 @@ export function SkillsPage() {
             className="text-[var(--color-accent)] hover:underline"
           >
             GitHub Issues
-          </a>
+          </a>{" "}
           {t("skills.clawhubDisclaimerAfterLink")}
         </p>
 
