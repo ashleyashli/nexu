@@ -56,6 +56,24 @@ export interface LaunchdBootstrapEnv {
   gatewayToken?: string;
   /** Plist directory (default: ~/Library/LaunchAgents or repo-local for dev) */
   plistDir?: string;
+
+  // --- Controller env vars (must match manifests.ts) ---
+  /** Web UI URL for CORS/redirects */
+  webUrl: string;
+  /** OpenClaw skills directory */
+  openclawSkillsDir: string;
+  /** Bundled static skills directory */
+  skillhubStaticSkillsDir: string;
+  /** Platform templates directory */
+  platformTemplatesDir: string;
+  /** OpenClaw binary path */
+  openclawBinPath: string;
+  /** OpenClaw extensions directory */
+  openclawExtensionsDir: string;
+  /** Skill NODE_PATH for controller module resolution */
+  skillNodePath: string;
+  /** TMPDIR for openclaw temp files */
+  openclawTmpDir: string;
 }
 
 export interface LaunchdBootstrapResult {
@@ -431,6 +449,15 @@ export async function bootstrapWithLaunchd(
     gatewayToken: env.gatewayToken,
     systemPath,
     nodeModulesPath,
+    // Controller-specific env vars
+    webUrl: env.webUrl,
+    openclawSkillsDir: env.openclawSkillsDir,
+    skillhubStaticSkillsDir: env.skillhubStaticSkillsDir,
+    platformTemplatesDir: env.platformTemplatesDir,
+    openclawBinPath: env.openclawBinPath,
+    openclawExtensionsDir: env.openclawExtensionsDir,
+    skillNodePath: env.skillNodePath,
+    openclawTmpDir: env.openclawTmpDir,
   };
 
   // Health check running services, install + start missing ones
