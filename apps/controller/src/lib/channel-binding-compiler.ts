@@ -109,6 +109,7 @@ export function compileChannelsConfig(params: {
     if (channel.channelType === "whatsapp") {
       whatsappAccounts[channel.accountId] = {
         enabled: true,
+        authDir: secret("authDir") || undefined,
       };
       continue;
     }
@@ -201,6 +202,7 @@ export function compileChannelsConfig(params: {
           telegram: {
             enabled: true,
             dmPolicy: "open",
+            allowFrom: ["*"],
             groupPolicy: "open",
             groups: {
               "*": {
@@ -216,7 +218,9 @@ export function compileChannelsConfig(params: {
           whatsapp: {
             enabled: true,
             dmPolicy: "open",
+            allowFrom: ["*"],
             groupPolicy: "open",
+            groupAllowFrom: ["*"],
             groups: {
               "*": {
                 requireMention: true,

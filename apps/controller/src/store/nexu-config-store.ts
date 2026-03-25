@@ -872,6 +872,7 @@ export class NexuConfigStore {
 
   async connectWhatsapp(input: {
     accountId: string;
+    authDir?: string | null;
   }): Promise<ChannelResponse> {
     const bot = await this.getOrCreateDefaultBot();
     const connectedAt = now();
@@ -900,6 +901,12 @@ export class NexuConfigStore {
         ),
         channel,
       ],
+      secrets: input.authDir
+        ? {
+            ...config.secrets,
+            [`channel:${channel.id}:authDir`]: input.authDir,
+          }
+        : config.secrets,
     }));
 
     return channel;

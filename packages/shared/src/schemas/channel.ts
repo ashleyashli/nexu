@@ -50,6 +50,10 @@ export const connectWhatsappSchema = z.object({
   accountId: z.string().min(1),
 });
 
+export const whatsappQrWaitRequestSchema = z.object({
+  accountId: z.string().min(1),
+});
+
 export const wechatQrStartResponseSchema = z.object({
   qrDataUrl: z.string().optional(),
   message: z.string(),
@@ -105,6 +109,7 @@ export type ConnectFeishuInput = z.infer<typeof connectFeishuSchema>;
 export type ConnectWechatInput = z.infer<typeof connectWechatSchema>;
 export type ConnectTelegramInput = z.infer<typeof connectTelegramSchema>;
 export type ConnectWhatsappInput = z.infer<typeof connectWhatsappSchema>;
+export type WhatsappQrWaitRequest = z.infer<typeof whatsappQrWaitRequestSchema>;
 export type WechatQrStartResponse = z.infer<typeof wechatQrStartResponseSchema>;
 export type WechatQrWaitResponse = z.infer<typeof wechatQrWaitResponseSchema>;
 export type WhatsappQrStartResponse = z.infer<

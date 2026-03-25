@@ -125,7 +125,7 @@ export function WhatsappSetupView({
       return;
     }
 
-    await finalizeConnect(waitData.accountId);
+    await finalizeConnect(data.accountId);
   }, [finalizeConnect]);
 
   const isLoading =

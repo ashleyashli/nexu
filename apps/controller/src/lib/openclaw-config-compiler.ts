@@ -351,9 +351,6 @@ function compilePlugins(
       feishu: {
         enabled: true,
       },
-      whatsapp: {
-        enabled: true,
-      },
       "openclaw-weixin": {
         enabled: true,
       },

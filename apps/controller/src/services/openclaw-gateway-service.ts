@@ -483,6 +483,35 @@ export class OpenClawGatewayService {
     );
   }
 
+  async whatsappQrStart(accountId: string): Promise<{
+    qrDataUrl?: string;
+    message: string;
+    accountId?: string;
+  }> {
+    if (!this.wsClient.isConnected()) {
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    return this.wsClient.request(
+      "web.login.start",
+      {
+        accountId,
+        force: true,
+      },
+      { timeoutMs: 60_000 },
+    );
+  }
+
+  async whatsappQrWait(accountId: string): Promise<{
+    connected: boolean;
+    message: string;
+  }> {
+    return this.wsClient.request(
+      "web.login.wait",
+      { accountId },
+      { timeoutMs: 500_000 },
+    );
+  }
+
   private configHash(config: OpenClawConfig): string {
     return createHash("sha256").update(JSON.stringify(config)).digest("hex");
   }

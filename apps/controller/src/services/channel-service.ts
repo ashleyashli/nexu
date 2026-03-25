@@ -4,10 +4,10 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { readdir } from "node:fs/promises";
-import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -29,11 +29,19 @@ function timeoutSignal(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const DEFAULT_WHATSAPP_ACCOUNT_ID = "default";
 const DEFAULT_WECHAT_BASE_URL = "https://ilinkai.weixin.qq.com";
 const DEFAULT_WECHAT_BOT_TYPE = "3";
 const WECHAT_LOGIN_TTL_MS = 5 * 60_000;
 const WECHAT_QR_POLL_TIMEOUT_MS = 35_000;
+const WHATSAPP_LOGIN_TTL_MS = 3 * 60_000;
+const WHATSAPP_QR_TIMEOUT_MS = 45_000;
+const WHATSAPP_WAIT_TIMEOUT_MS = 120_000;
+const WHATSAPP_LOGGED_OUT_STATUS = 401;
 
 type ActiveWechatLogin = {
   sessionKey: string;
@@ -50,19 +58,6 @@ type TelegramGetMeResponse = {
     username?: string;
     first_name?: string;
   };
-};
-
-type WhatsappLoginModule = {
-  startWebLoginWithQr: (opts?: {
-    verbose?: boolean;
-    timeoutMs?: number;
-    force?: boolean;
-    accountId?: string;
-  }) => Promise<{ qrDataUrl?: string; message: string }>;
-  waitForWebLogin: (opts?: {
-    timeoutMs?: number;
-    accountId?: string;
-  }) => Promise<{ connected: boolean; message: string }>;
 };
 
 type WechatQrCodeResponse = {
@@ -87,18 +82,70 @@ type WechatStoredAccount = {
 
 const activeWechatLogins = new Map<string, ActiveWechatLogin>();
 
-function isFsPath(value: string): boolean {
-  return value.includes(path.sep) || value.startsWith(".");
-}
+type WaSocket = {
+  ws?: { close?: () => void };
+  ev: {
+    on: (event: string, listener: (...args: unknown[]) => void) => void;
+    off?: (event: string, listener: (...args: unknown[]) => void) => void;
+  };
+};
 
-function resolveWorkspaceRoot(env: ControllerEnv): string | null {
-  const workspaceFromTemplates = path.resolve(
-    env.runtimePluginTemplatesDir,
-    "../..",
-  );
-  return existsSync(path.join(workspaceFromTemplates, "pnpm-workspace.yaml"))
-    ? workspaceFromTemplates
-    : null;
+type ActiveWhatsappLogin = {
+  accountId: string;
+  authDir: string;
+  startedAt: number;
+  sock: WaSocket;
+  waitPromise: Promise<void>;
+  qr?: string;
+  qrDataUrl?: string;
+  connected: boolean;
+  error?: string;
+  errorStatus?: number;
+  restartAttempted: boolean;
+  preserveAuthDirOnReset?: boolean;
+};
+
+type WhatsappRuntimeModules = {
+  createWaSocket: (
+    printQr: boolean,
+    verbose: boolean,
+    opts?: { authDir?: string; onQr?: (qr: string) => void },
+  ) => Promise<WaSocket>;
+  waitForWaConnection: (sock: WaSocket) => Promise<void>;
+  getStatusCode: (error: unknown) => number | undefined;
+  formatError: (error: unknown) => string;
+};
+
+const activeWhatsappLogins = new Map<string, ActiveWhatsappLogin>();
+
+function extractWhatsappStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+
+  const directOutput = (error as { output?: unknown }).output;
+  if (directOutput && typeof directOutput === "object") {
+    const directStatusCode = (directOutput as { statusCode?: unknown })
+      .statusCode;
+    if (typeof directStatusCode === "number") {
+      return directStatusCode;
+    }
+  }
+
+  const nestedError = (error as { error?: unknown }).error;
+  if (nestedError && typeof nestedError === "object") {
+    const nestedOutput = (nestedError as { output?: unknown }).output;
+    if (nestedOutput && typeof nestedOutput === "object") {
+      const nestedStatusCode = (nestedOutput as { statusCode?: unknown })
+        .statusCode;
+      if (typeof nestedStatusCode === "number") {
+        return nestedStatusCode;
+      }
+    }
+  }
+
+  const directStatus = (error as { status?: unknown }).status;
+  return typeof directStatus === "number" ? directStatus : undefined;
 }
 
 function normalizeAccountId(accountId: string): string {
@@ -125,6 +172,33 @@ function resolveWeChatAccountsDir(env: ControllerEnv): string {
 
 function resolveWeChatAccountIndexPath(env: ControllerEnv): string {
   return path.join(resolveWeChatPluginStateDir(env), "accounts.json");
+}
+
+function resolveWhatsAppAccountDir(
+  env: ControllerEnv,
+  accountId: string,
+): string {
+  return path.join(
+    env.openclawStateDir,
+    "credentials",
+    "whatsapp",
+    normalizeAccountId(accountId),
+  );
+}
+
+function resolveWhatsAppLoginSessionDir(
+  env: ControllerEnv,
+  sessionId: string,
+): string {
+  return path.join(env.openclawStateDir, "whatsapp-login", sessionId);
+}
+
+function isTemporaryWhatsAppAuthDir(authDir: string): boolean {
+  return authDir.includes(`${path.sep}whatsapp-login${path.sep}`);
+}
+
+function resolveWhatsAppLoginSessionRoot(authDir: string): string {
+  return path.dirname(path.dirname(authDir));
 }
 
 function writeWeChatAccount(
@@ -184,6 +258,214 @@ function purgeExpiredWechatLogins(): void {
   }
 }
 
+function closeWhatsappSocket(sock: WaSocket): void {
+  try {
+    sock.ws?.close?.();
+  } catch {
+    // ignore
+  }
+}
+
+function isWhatsappLoginFresh(login: ActiveWhatsappLogin): boolean {
+  return Date.now() - login.startedAt < WHATSAPP_LOGIN_TTL_MS;
+}
+
+async function resetActiveWhatsappLogin(
+  accountId: string,
+  reason?: string,
+): Promise<void> {
+  const login = activeWhatsappLogins.get(accountId);
+  if (login) {
+    closeWhatsappSocket(login.sock);
+    if (
+      !login.preserveAuthDirOnReset &&
+      isTemporaryWhatsAppAuthDir(login.authDir)
+    ) {
+      rmSync(resolveWhatsAppLoginSessionRoot(login.authDir), {
+        recursive: true,
+        force: true,
+      });
+    }
+    activeWhatsappLogins.delete(accountId);
+  }
+  if (reason) {
+    logger.info({ accountId, reason }, "whatsapp_login_reset");
+  }
+}
+
+function attachWhatsappLoginWaiter(
+  login: ActiveWhatsappLogin,
+  runtime: WhatsappRuntimeModules,
+): void {
+  logger.info(
+    {
+      accountId: login.accountId,
+      authDir: login.authDir,
+      restartAttempted: login.restartAttempted,
+    },
+    "whatsapp_login_wait_started",
+  );
+  login.waitPromise = runtime
+    .waitForWaConnection(login.sock)
+    .then(() => {
+      const current = activeWhatsappLogins.get(login.accountId);
+      if (current?.startedAt === login.startedAt) {
+        current.connected = true;
+        logger.info(
+          {
+            accountId: current.accountId,
+            authDir: current.authDir,
+            restartAttempted: current.restartAttempted,
+          },
+          "whatsapp_login_wait_connected",
+        );
+      }
+    })
+    .catch((error) => {
+      const current = activeWhatsappLogins.get(login.accountId);
+      if (current?.startedAt !== login.startedAt) {
+        return;
+      }
+      current.error = runtime.formatError(error);
+      current.errorStatus = extractWhatsappStatusCode(error);
+      logger.warn(
+        {
+          accountId: current.accountId,
+          authDir: current.authDir,
+          restartAttempted: current.restartAttempted,
+          error: current.error,
+          errorStatus: current.errorStatus,
+        },
+        "whatsapp_login_wait_failed",
+      );
+    });
+}
+
+async function restartWhatsappLoginSocket(
+  login: ActiveWhatsappLogin,
+  runtime: WhatsappRuntimeModules,
+): Promise<boolean> {
+  if (login.restartAttempted) {
+    return false;
+  }
+  login.restartAttempted = true;
+  logger.info(
+    { accountId: login.accountId, authDir: login.authDir },
+    "whatsapp_login_retry_after_515",
+  );
+  closeWhatsappSocket(login.sock);
+  try {
+    const sock = await runtime.createWaSocket(false, false, {
+      authDir: login.authDir,
+    });
+    login.sock = sock;
+    login.connected = false;
+    login.error = undefined;
+    login.errorStatus = undefined;
+    logger.info(
+      { accountId: login.accountId, authDir: login.authDir },
+      "whatsapp_login_retry_socket_created",
+    );
+    attachWhatsappLoginWaiter(login, runtime);
+    return true;
+  } catch (error) {
+    login.error = runtime.formatError(error);
+    login.errorStatus = extractWhatsappStatusCode(error);
+    logger.warn(
+      {
+        accountId: login.accountId,
+        authDir: login.authDir,
+        error: login.error,
+        errorStatus: login.errorStatus,
+      },
+      "whatsapp_login_retry_socket_failed",
+    );
+    return false;
+  }
+}
+
+function resolveOpenClawPackageDir(env: ControllerEnv): string {
+  const candidates = [
+    env.openclawBuiltinExtensionsDir
+      ? path.dirname(env.openclawBuiltinExtensionsDir)
+      : null,
+    path.join(
+      env.openclawStateDir,
+      "..",
+      "..",
+      "..",
+      "..",
+      "sidecars",
+      "openclaw",
+      "node_modules",
+      "openclaw",
+    ),
+    path.join(
+      process.cwd(),
+      "..",
+      "..",
+      "openclaw-runtime",
+      "node_modules",
+      "openclaw",
+    ),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidates) {
+    if (existsSync(path.join(candidate, "package.json"))) {
+      return path.resolve(candidate);
+    }
+  }
+  throw new Error("OpenClaw package root not found for WhatsApp login");
+}
+
+function findDistModuleFile(
+  distDir: string,
+  matcher: (name: string) => boolean,
+  contentPattern: RegExp,
+  errorMessage: string,
+): string {
+  const files = readdirSync(distDir).filter(matcher).sort();
+  for (const file of files) {
+    try {
+      const source = readFileSync(path.join(distDir, file), "utf-8");
+      if (contentPattern.test(source)) {
+        return file;
+      }
+    } catch {
+      // ignore unreadable candidates
+    }
+  }
+  throw new Error(errorMessage);
+}
+
+async function loadWhatsappRuntimeModules(
+  env: ControllerEnv,
+): Promise<WhatsappRuntimeModules> {
+  const packageDir = resolveOpenClawPackageDir(env);
+  const distDir = path.join(packageDir, "dist");
+  const sessionFile = findDistModuleFile(
+    distDir,
+    (name) => /^session-[^.]+\.js$/.test(name),
+    /createWaSocket[\s\S]*waitForWaConnection[\s\S]*getStatusCode[\s\S]*formatError/,
+    "OpenClaw WhatsApp session module not found",
+  );
+  const sessionModule = (await import(
+    pathToFileURL(path.join(distDir, sessionFile)).href
+  )) as {
+    t: WhatsappRuntimeModules["createWaSocket"];
+    i: WhatsappRuntimeModules["waitForWaConnection"];
+    r: WhatsappRuntimeModules["getStatusCode"];
+    n: WhatsappRuntimeModules["formatError"];
+  };
+
+  return {
+    createWaSocket: sessionModule.t,
+    waitForWaConnection: sessionModule.i,
+    getStatusCode: sessionModule.r,
+    formatError: sessionModule.n,
+  };
+}
+
 async function fetchWechatQrCode(
   apiBaseUrl: string,
   botType: string,
@@ -233,118 +515,6 @@ async function pollWechatQrStatus(
   } finally {
     clearTimeout(timer);
   }
-}
-
-function resolveOpenClawPackageDir(env: ControllerEnv): string {
-  const candidates = new Set<string>();
-
-  if (env.openclawBuiltinExtensionsDir) {
-    candidates.add(path.resolve(env.openclawBuiltinExtensionsDir, ".."));
-  }
-
-  if (isFsPath(env.openclawBin)) {
-    const binDir = path.dirname(path.resolve(env.openclawBin));
-    candidates.add(path.resolve(binDir, "..", "node_modules", "openclaw"));
-    candidates.add(
-      path.resolve(binDir, "..", "..", "node_modules", "openclaw"),
-    );
-    candidates.add(
-      path.resolve(binDir, "openclaw-runtime", "node_modules", "openclaw"),
-    );
-  }
-
-  const workspaceRoot = resolveWorkspaceRoot(env);
-  if (workspaceRoot) {
-    candidates.add(
-      path.resolve(
-        workspaceRoot,
-        ".tmp",
-        "sidecars",
-        "openclaw",
-        "node_modules",
-        "openclaw",
-      ),
-    );
-    candidates.add(
-      path.resolve(
-        workspaceRoot,
-        "openclaw-runtime",
-        "node_modules",
-        "openclaw",
-      ),
-    );
-  }
-
-  candidates.add(
-    path.resolve(process.cwd(), "openclaw-runtime", "node_modules", "openclaw"),
-  );
-
-  const candidateList = [...candidates];
-
-  logger.info(
-    {
-      openclawBin: env.openclawBin,
-      openclawBuiltinExtensionsDir: env.openclawBuiltinExtensionsDir,
-      cwd: process.cwd(),
-      candidates: candidateList,
-    },
-    "whatsapp_resolve_openclaw_package_dir",
-  );
-
-  try {
-    const require = createRequire(import.meta.url);
-    const packageJsonPath = require.resolve("openclaw/package.json");
-    candidates.add(path.dirname(packageJsonPath));
-  } catch {
-    // Ignore and keep trying filesystem-based candidates.
-  }
-
-  const matched = [...candidates].find((candidate) =>
-    existsSync(path.join(candidate, "package.json")),
-  );
-  logger.info(
-    {
-      matched: matched ?? null,
-    },
-    "whatsapp_resolve_openclaw_package_dir_result",
-  );
-  if (!matched) {
-    throw new Error("OpenClaw package root not found for WhatsApp login");
-  }
-  return matched;
-}
-
-async function loadWhatsappLoginModule(
-  env: ControllerEnv,
-): Promise<WhatsappLoginModule> {
-  const pluginSdkDir = path.join(
-    resolveOpenClawPackageDir(env),
-    "dist",
-    "plugin-sdk",
-  );
-  const entries = await readdir(pluginSdkDir);
-  const loginChunk = entries
-    .filter(
-      (entry) =>
-        entry.startsWith("login-qr-") && entry.toLowerCase().endsWith(".js"),
-    )
-    .sort()[0];
-
-  if (!loginChunk) {
-    throw new Error("OpenClaw WhatsApp login module not found");
-  }
-
-  const modulePath = path.join(pluginSdkDir, loginChunk);
-  const loaded = (await import(pathToFileURL(modulePath).href)) as unknown;
-  if (
-    typeof loaded !== "object" ||
-    loaded === null ||
-    !("startWebLoginWithQr" in loaded) ||
-    !("waitForWebLogin" in loaded)
-  ) {
-    throw new Error("OpenClaw WhatsApp login module is invalid");
-  }
-  return loaded as WhatsappLoginModule;
 }
 
 export class ChannelService {
@@ -591,38 +761,213 @@ export class ChannelService {
   }
 
   async whatsappQrStart() {
-    const login = await loadWhatsappLoginModule(this.env);
-    const result = await login.startWebLoginWithQr({
-      accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
-      force: true,
-      timeoutMs: 30_000,
+    await this.resetWhatsAppDefaultLoginState(DEFAULT_WHATSAPP_ACCOUNT_ID);
+    const existing = activeWhatsappLogins.get(DEFAULT_WHATSAPP_ACCOUNT_ID);
+    if (existing && isWhatsappLoginFresh(existing) && existing.qrDataUrl) {
+      return {
+        qrDataUrl: existing.qrDataUrl,
+        message: "QR already active. Scan it in WhatsApp -> Linked Devices.",
+        accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
+        alreadyLinked: false,
+      };
+    }
+
+    await resetActiveWhatsappLogin(DEFAULT_WHATSAPP_ACCOUNT_ID);
+
+    const runtime = await loadWhatsappRuntimeModules(this.env);
+    let resolveQr: ((qr: string) => void) | null = null;
+    let rejectQr: ((error: Error) => void) | null = null;
+    const qrPromise = new Promise<string>((resolve, reject) => {
+      resolveQr = resolve;
+      rejectQr = reject;
     });
-    const alreadyLinked =
-      !result.qrDataUrl &&
-      result.message.toLowerCase().includes("already linked");
-    return {
-      ...result,
+    const qrTimer = setTimeout(() => {
+      rejectQr?.(new Error("Timed out waiting for WhatsApp QR"));
+    }, WHATSAPP_QR_TIMEOUT_MS);
+
+    const loginSessionId = randomUUID();
+    const loginSessionDir = resolveWhatsAppLoginSessionDir(
+      this.env,
+      loginSessionId,
+    );
+    const authDir = path.join(loginSessionDir, "credentials", "whatsapp");
+    mkdirSync(authDir, { recursive: true });
+
+    let sock: WaSocket;
+    let pendingQr: string | null = null;
+    try {
+      sock = await runtime.createWaSocket(false, false, {
+        authDir,
+        onQr: (qr) => {
+          if (pendingQr) {
+            return;
+          }
+          pendingQr = qr;
+          const current = activeWhatsappLogins.get(DEFAULT_WHATSAPP_ACCOUNT_ID);
+          if (current && !current.qr) {
+            current.qr = qr;
+          }
+          clearTimeout(qrTimer);
+          resolveQr?.(qr);
+        },
+      });
+    } catch (error) {
+      clearTimeout(qrTimer);
+      await resetActiveWhatsappLogin(DEFAULT_WHATSAPP_ACCOUNT_ID);
+      throw new Error(`Failed to start WhatsApp login: ${String(error)}`);
+    }
+
+    const login: ActiveWhatsappLogin = {
       accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
-      alreadyLinked,
+      authDir,
+      startedAt: Date.now(),
+      sock,
+      waitPromise: Promise.resolve(),
+      connected: false,
+      restartAttempted: false,
+    };
+    activeWhatsappLogins.set(DEFAULT_WHATSAPP_ACCOUNT_ID, login);
+    if (pendingQr && !login.qr) {
+      login.qr = pendingQr;
+    }
+    attachWhatsappLoginWaiter(login, runtime);
+
+    let qr: string;
+    try {
+      qr = await qrPromise;
+    } catch (error) {
+      clearTimeout(qrTimer);
+      await resetActiveWhatsappLogin(DEFAULT_WHATSAPP_ACCOUNT_ID);
+      throw new Error(`Failed to get QR: ${String(error)}`);
+    }
+
+    login.qrDataUrl = qr;
+    return {
+      qrDataUrl: login.qrDataUrl,
+      message: "Scan this QR in WhatsApp -> Linked Devices.",
+      accountId: DEFAULT_WHATSAPP_ACCOUNT_ID,
+      alreadyLinked: false,
     };
   }
 
   async whatsappQrWait(accountId: string) {
-    const login = await loadWhatsappLoginModule(this.env);
-    const result = await login.waitForWebLogin({
-      accountId,
-      timeoutMs: 500_000,
-    });
-    return {
-      ...result,
-      accountId,
-    };
+    const login = activeWhatsappLogins.get(accountId);
+    if (!login) {
+      return {
+        connected: false,
+        message: "No active WhatsApp login in progress.",
+        accountId,
+      };
+    }
+    if (!isWhatsappLoginFresh(login)) {
+      await resetActiveWhatsappLogin(accountId);
+      return {
+        connected: false,
+        message: "The login QR expired. Generate a new one.",
+        accountId,
+      };
+    }
+
+    const runtime = await loadWhatsappRuntimeModules(this.env);
+    const deadline = Date.now() + WHATSAPP_WAIT_TIMEOUT_MS;
+
+    while (true) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        return {
+          connected: false,
+          message:
+            "Still waiting for the QR scan. Let me know when you've scanned it.",
+          accountId,
+        };
+      }
+
+      const timeout = new Promise<"timeout">((resolve) =>
+        setTimeout(() => resolve("timeout"), remaining),
+      );
+      const result = await Promise.race([
+        login.waitPromise.then(() => "done" as const),
+        timeout,
+      ]);
+
+      if (result === "timeout") {
+        return {
+          connected: false,
+          message:
+            "Still waiting for the QR scan. Let me know when you've scanned it.",
+          accountId,
+        };
+      }
+
+      if (login.error) {
+        logger.warn(
+          {
+            accountId,
+            authDir: login.authDir,
+            error: login.error,
+            errorStatus: login.errorStatus,
+            restartAttempted: login.restartAttempted,
+          },
+          "whatsapp_qr_wait_observed_login_error",
+        );
+        if (login.errorStatus === WHATSAPP_LOGGED_OUT_STATUS) {
+          rmSync(login.authDir, { recursive: true, force: true });
+          const message =
+            "WhatsApp reported the session is logged out. Cleared cached web session; please scan a new QR.";
+          await resetActiveWhatsappLogin(accountId, message);
+          return { connected: false, message, accountId };
+        }
+        if (login.errorStatus === 515) {
+          const restarted = await restartWhatsappLoginSocket(login, runtime);
+          if (restarted && isWhatsappLoginFresh(login)) {
+            continue;
+          }
+        }
+        const message = `WhatsApp login failed: ${login.error}`;
+        await resetActiveWhatsappLogin(accountId, message);
+        return { connected: false, message, accountId };
+      }
+
+      if (login.connected) {
+        login.preserveAuthDirOnReset = true;
+        return {
+          connected: true,
+          message: "Linked! WhatsApp is ready.",
+          accountId,
+        };
+      }
+
+      return {
+        connected: false,
+        message: "Login ended without a connection.",
+        accountId,
+      };
+    }
   }
 
   async connectWhatsapp(accountId: string) {
-    const channel = await this.configStore.connectWhatsapp({ accountId });
+    const login = activeWhatsappLogins.get(accountId);
+    if (!login || !login.connected) {
+      throw new Error("WhatsApp login is not complete yet.");
+    }
+    const channel = await this.configStore.connectWhatsapp({
+      accountId,
+      authDir: login.authDir,
+    });
     await this.syncService.writePlatformTemplatesForBot(channel.botId);
     await this.syncService.syncAll();
+    const readiness = await this.waitForWhatsappReady(accountId);
+    if (!readiness.ready) {
+      await this.configStore.disconnectChannel(channel.id);
+      await this.syncService.syncAll();
+      login.preserveAuthDirOnReset = false;
+      await resetActiveWhatsappLogin(accountId);
+      throw new Error(
+        readiness.lastError ??
+          "WhatsApp linked, but the runtime failed to start the listener.",
+      );
+    }
+    await resetActiveWhatsappLogin(accountId);
     return channel;
   }
 
@@ -676,5 +1021,48 @@ export class ChannelService {
       await this.syncService.syncAll();
     }
     return removed;
+  }
+
+  private async waitForWhatsappReady(accountId: string) {
+    const deadline = Date.now() + 45_000;
+    let lastReadiness = await this.gatewayService.getChannelReadiness(
+      "whatsapp",
+      accountId,
+    );
+    while (Date.now() < deadline) {
+      if (lastReadiness.ready) {
+        return lastReadiness;
+      }
+      if (
+        lastReadiness.gatewayConnected &&
+        lastReadiness.lastError &&
+        lastReadiness.configured
+      ) {
+        return lastReadiness;
+      }
+      await sleep(1500);
+      lastReadiness = await this.gatewayService.getChannelReadiness(
+        "whatsapp",
+        accountId,
+      );
+    }
+    return lastReadiness;
+  }
+
+  private async resetWhatsAppDefaultLoginState(accountId: string) {
+    const authDir = resolveWhatsAppAccountDir(this.env, accountId);
+    if (!existsSync(authDir)) {
+      logger.info(
+        { channelType: "whatsapp", accountId, authDir },
+        "whatsapp_qr_start_no_auth_dir",
+      );
+      return;
+    }
+
+    rmSync(authDir, { recursive: true, force: true });
+    logger.info(
+      { channelType: "whatsapp", accountId, authDir },
+      "whatsapp_qr_start_auth_dir_cleared",
+    );
   }
 }

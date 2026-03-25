@@ -85,7 +85,13 @@ function generateControllerPlist(label: string, env: PlistEnv): string {
         <key>OPENCLAW_GATEWAY_PORT</key>
         <string>${env.openclawPort}</string>
         <key>RUNTIME_MANAGE_OPENCLAW_PROCESS</key>
-        <string>false</string>${
+        <string>false</string>
+        <key>OPENCLAW_CONFIG</key>
+        <string>${escapeXml(env.openclawConfigPath)}</string>
+        <key>OPENCLAW_CONFIG_PATH</key>
+        <string>${escapeXml(env.openclawConfigPath)}</string>
+        <key>OPENCLAW_STATE_DIR</key>
+        <string>${escapeXml(env.openclawStateDir)}</string>${
           env.openclawBinPath
             ? `
         <key>OPENCLAW_BIN</key>

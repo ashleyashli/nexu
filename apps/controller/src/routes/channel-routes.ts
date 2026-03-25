@@ -13,6 +13,7 @@ import {
   wechatQrStartResponseSchema,
   wechatQrWaitResponseSchema,
   whatsappQrStartResponseSchema,
+  whatsappQrWaitRequestSchema,
   whatsappQrWaitResponseSchema,
 } from "@nexu/shared";
 import type { ControllerContainer } from "../app/container.js";
@@ -364,7 +365,7 @@ export function registerChannelRoutes(
         body: {
           content: {
             "application/json": {
-              schema: z.object({ accountId: z.string().min(1) }),
+              schema: whatsappQrWaitRequestSchema,
             },
           },
         },
