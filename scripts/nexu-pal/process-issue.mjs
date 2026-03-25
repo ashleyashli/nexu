@@ -7,23 +7,24 @@
  * 2. Classifies intent → tags `bug`, `enhancement`, or `help-wanted`
  *
  * Environment variables:
- *   LITELLM_ENDPOINT  — LiteLLM proxy base URL (e.g. https://litellm.example.com/v1)
- *   LITELLM_API_KEY   — API key for the proxy
- *   LITELLM_MODEL     — Model ID (default: google/gemini-2.5-flash)
+ *   OPENAI_BASE_URL   — OpenRouter base URL (e.g. https://openrouter.ai/api/v1)
+ *   OPENAI_API_KEY    — OpenRouter API key
+ *   OPENAI_MODEL      — Model ID (default: google/gemini-2.5-flash)
  *   GITHUB_TOKEN      — GitHub token with issues write permission
  *   GITHUB_REPOSITORY — owner/repo
  *   ISSUE_NUMBER      — Issue number to process
  *   ISSUE_TITLE       — Issue title
  *   ISSUE_BODY        — Issue body (may be empty)
+ *   ISSUE_ASSIGNEE    — Issue assignee login (empty if unassigned)
  */
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
-const endpoint = process.env.LITELLM_ENDPOINT;
-const apiKey = process.env.LITELLM_API_KEY;
-const model = process.env.LITELLM_MODEL ?? "google/gemini-2.5-flash";
+const endpoint = process.env.OPENAI_BASE_URL;
+const apiKey = process.env.OPENAI_API_KEY;
+const model = process.env.OPENAI_MODEL ?? "google/gemini-2.5-flash";
 const ghToken = process.env.GITHUB_TOKEN;
 const repo = process.env.GITHUB_REPOSITORY; // owner/repo
 const issueNumber = process.env.ISSUE_NUMBER;
@@ -32,7 +33,7 @@ const issueBody = process.env.ISSUE_BODY ?? "";
 
 if (!endpoint || !apiKey || !ghToken || !repo || !issueNumber) {
   console.error(
-    "Missing required env: LITELLM_ENDPOINT, LITELLM_API_KEY, GITHUB_TOKEN, GITHUB_REPOSITORY, ISSUE_NUMBER",
+    "Missing required env: OPENAI_BASE_URL, OPENAI_API_KEY, GITHUB_TOKEN, GITHUB_REPOSITORY, ISSUE_NUMBER",
   );
   process.exit(1);
 }
@@ -275,6 +276,13 @@ async function main() {
     console.warn(
       `  Unexpected classification label: ${JSON.stringify(classification.label)}; skipping label.`,
     );
+  }
+
+  // Step 3: needs-triage label
+  const issueAssignee = process.env.ISSUE_ASSIGNEE ?? "";
+  if (!issueAssignee) {
+    labels.push("needs-triage");
+    console.log("  No assignee — adding needs-triage label.");
   }
 
   // Apply labels
