@@ -17,6 +17,62 @@ describe("createTriagePlan", () => {
 });
 
 describe("buildOpenedIssueTriagePlan", () => {
+  it("restores public translation comments for non-English issues", async () => {
+    const chat = vi
+      .fn()
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          is_non_english: true,
+          detected_language: "Chinese",
+          translated_title: "Cannot choose install directory on Windows",
+          translated_body:
+            "The installer always uses the system drive and does not allow choosing a workspace.",
+        }),
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          is_bug: false,
+          reason: "feature request rather than broken behavior",
+        }),
+      )
+      .mockResolvedValueOnce(
+        JSON.stringify({
+          needs_information: false,
+          reason: "enough detail for triage",
+          missing_items: [],
+        }),
+      );
+
+    const plan = await buildOpenedIssueTriagePlan({
+      issueTitle: "win版安装无法指定目录",
+      issueBody: "安装器总是写到系统盘。",
+      chat,
+    });
+
+    expect(plan.labelsToAdd).toEqual(["ai-translated", "needs-triage"]);
+    expect(plan.commentsToAdd).toEqual([
+      [
+        "# AI Translation:",
+        "",
+        "---",
+        "",
+        "**Title:**",
+        "",
+        "Cannot choose install directory on Windows",
+        "",
+        "**Body:**",
+        "",
+        "The installer always uses the system drive and does not allow choosing a workspace.",
+      ].join("\n"),
+    ]);
+    expect(plan.diagnostics).toEqual(
+      expect.arrayContaining([
+        "translation comment prepared for Chinese issue",
+        "bug classification: feature request rather than broken behavior",
+      ]),
+    );
+  });
+
   it("returns a full plan with stub diagnostics and bug-only labeling", async () => {
     const chat = vi
       .fn()

@@ -11,6 +11,22 @@ export function createTriagePlan() {
   };
 }
 
+function buildTranslationComment({ englishTitle, englishBody }) {
+  return [
+    "# AI Translation:",
+    "",
+    "---",
+    "",
+    "**Title:**",
+    "",
+    englishTitle,
+    "",
+    "**Body:**",
+    "",
+    englishBody,
+  ].join("\n");
+}
+
 function toOrderedUniqueStrings(values) {
   if (!Array.isArray(values)) {
     return [];
@@ -191,6 +207,19 @@ export async function buildOpenedIssueTriagePlan({
 
     englishTitle = hasTitle ? translation.translated_title : issueTitle;
     englishBody = hasBody ? translation.translated_body : issueBody;
+
+    if (hasTitle || hasBody) {
+      plan.commentsToAdd.push(
+        buildTranslationComment({
+          englishTitle,
+          englishBody,
+        }),
+      );
+      plan.labelsToAdd.push("ai-translated");
+      plan.diagnostics.push(
+        `translation comment prepared for ${translation.detected_language ?? "non-English"} issue`,
+      );
+    }
 
     if (!(hasTitle || hasBody)) {
       plan.diagnostics.push(
