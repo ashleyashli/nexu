@@ -11,6 +11,31 @@ export function createTriagePlan() {
   };
 }
 
+function toOrderedUniqueStrings(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  const seen = new Set();
+  const result = [];
+
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const normalizedValue = value.trim();
+    if (normalizedValue === "" || seen.has(normalizedValue)) {
+      continue;
+    }
+
+    seen.add(normalizedValue);
+    result.push(normalizedValue);
+  }
+
+  return result;
+}
+
 function sanitizeJsonResponse(raw) {
   return raw.replace(/^```(?:json)?\s*\n?/m, "").replace(/\n?```\s*$/m, "");
 }
@@ -75,10 +100,79 @@ Rules:
   }
 }
 
+async function assessInformationCompleteness({
+  chat,
+  englishTitle,
+  englishBody,
+  isBug,
+}) {
+  const content = `Issue type hint: ${isBug ? "bug" : "non-bug"}\n\nTitle: ${englishTitle}\n\nBody:\n${englishBody}`;
+
+  const systemPrompt = `You are a GitHub issue intake reviewer.
+
+Decide whether this issue is missing the minimum information required to continue triage right now.
+
+Respond with a JSON object (no markdown fences):
+{
+  "needs_information": true | false,
+  "reason": "brief one-line explanation",
+  "missing_items": ["item 1", "item 2"]
+}
+
+Rules:
+- Return true only when the report is clearly too incomplete for a PM/maintainer to reasonably triage.
+- For bug reports, look for basics like what happened, what was expected, and some reproducible context or error details.
+- For non-bug requests, look for basics like the problem/motivation and the requested change.
+- If the issue is understandable enough to be triaged manually, return false.
+- Keep missing_items short, concrete, and user-facing.
+- When uncertain, prefer false.`;
+
+  const raw = await chat(systemPrompt, content);
+
+  try {
+    const parsed = JSON.parse(sanitizeJsonResponse(raw));
+    return {
+      needs_information: parsed.needs_information === true,
+      reason:
+        typeof parsed.reason === "string" && parsed.reason.trim() !== ""
+          ? parsed.reason.trim()
+          : "no reason provided",
+      missing_items: toOrderedUniqueStrings(parsed.missing_items),
+    };
+  } catch {
+    return {
+      needs_information: false,
+      reason: "completeness parse failed",
+      missing_items: [],
+    };
+  }
+}
+
+function buildNeedsInformationComment({ missingItems, reason }) {
+  const lines = [
+    "Thanks for the report. We need a bit more information before we can continue triage.",
+  ];
+
+  if (missingItems.length > 0) {
+    lines.push("", "Please update this issue with:");
+    for (const item of missingItems) {
+      lines.push(`- ${item}`);
+    }
+  } else if (reason) {
+    lines.push("", `What is missing: ${reason}`);
+  }
+
+  lines.push(
+    "",
+    "Once the missing details are added, a maintainer can continue triage.",
+  );
+
+  return lines.join("\n");
+}
+
 export async function buildOpenedIssueTriagePlan({
   issueTitle,
   issueBody,
-  issueAssignee,
   chat,
 }) {
   const plan = createTriagePlan();
@@ -140,7 +234,29 @@ export async function buildOpenedIssueTriagePlan({
     `bug classification: ${classification.reason ?? "no reason provided"}`,
   );
 
-  if (!issueAssignee && roadmap.matched !== true) {
+  const completeness = await assessInformationCompleteness({
+    chat,
+    englishTitle,
+    englishBody,
+    isBug: classification.is_bug === true,
+  });
+
+  plan.diagnostics.push(
+    `information completeness: ${completeness.reason ?? "no reason provided"}`,
+  );
+
+  if (completeness.needs_information === true) {
+    plan.labelsToAdd.push("needs-information");
+    plan.commentsToAdd.push(
+      buildNeedsInformationComment({
+        missingItems: completeness.missing_items,
+        reason: completeness.reason,
+      }),
+    );
+    return plan;
+  }
+
+  if (roadmap.matched !== true) {
     plan.labelsToAdd.push("needs-triage");
   }
 

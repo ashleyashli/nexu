@@ -7,7 +7,6 @@ GitHub issue/discussion automation around **nexu-pal** issue processing and Feis
 | Workflow | Trigger | Script |
 |----------|---------|--------|
 | `nexu-pal: issue opened` | `issues: [opened]` | `scripts/nexu-pal/process-issue-opened.mjs` |
-| `nexu-pal: issue assigned` | `issues: [assigned]` | `scripts/nexu-pal/process-issue-assignment.mjs` |
 | `nexu-pal: triage command` | `issue_comment: [created]` (issues only) | `scripts/nexu-pal/process-triage-command.mjs` |
 | `Feishu Issue Notification` | `issues: [opened]` | `scripts/notify/feishu-notify.mjs` |
 | `nexu-pal: needs-triage notify` | `issues: [labeled]` (when label is `needs-triage`) | `scripts/notify/feishu-triage-notify.mjs` |
@@ -23,7 +22,9 @@ Runs in order:
 
 3. **Intent classification** — Sends the normalized English title and body to the LLM and assigns only the `bug` label when the issue clearly describes broken behavior.
 
-4. **Triage label** — If the issue has no assignee, adds the `needs-triage` label.
+4. **Completeness check** — Uses the LLM to decide whether the issue is too incomplete to continue triage. If so, adds `needs-information`, posts a follow-up comment, and pauses there.
+
+5. **Triage label** — If the issue is not roadmap-matched and does not need more information, adds the `needs-triage` label.
 
 The opened-issue flow is split into a small pipeline:
 
@@ -38,10 +39,6 @@ Current Phase 3 behavior keeps roadmap and duplicate detection as no-op stubs, b
 - `labelsToRemove`
 - `closeIssue`
 
-## On issue assigned
-
-Removes the `needs-triage` label (no-op if the label is already absent) via the same shared GitHub issue client used by the main triage pipeline.
-
 ## On `/triage` issue comment
 
 Runs on `issue_comment: [created]` for issues only.
@@ -52,9 +49,9 @@ Runs on `issue_comment: [created]` for issues only.
 
 Current transitions:
 
-- `/triage accepted` — add `triage:accepted`, remove `needs-triage`, add acceptance comment.
-- `/triage declined` — add `triage:declined`, remove `needs-triage`, add decline comment, close the issue.
-- `/triage duplicated` — add `triage:duplicated`, remove `needs-triage` and `possible-duplicate`, add duplicate comment, close the issue.
+- `/triage accepted` — add `triage:accepted`, remove `needs-triage` / `needs-information`, add acceptance comment.
+- `/triage declined` — add `triage:declined`, remove `needs-triage` / `needs-information`, add decline comment, close the issue.
+- `/triage duplicated` — add `triage:duplicated`, remove `needs-triage` / `needs-information` / `possible-duplicate`, add duplicate comment, close the issue.
 
 ## Feishu notifications
 
@@ -71,7 +68,8 @@ The legacy issue/discussion workflows continue to run `node scripts/notify/feish
 | Label | Added when | Removed when |
 |-------|-----------|--------------|
 | `bug` | LLM classifies as bug | — |
-| `needs-triage` | Issue opened with no assignee | Issue is assigned |
+| `needs-information` | LLM determines the issue is too incomplete to continue triage | `/triage *` terminal transitions for manual override; automatic re-entry is not implemented yet |
+| `needs-triage` | Issue opened, not roadmap-matched, and complete enough for manual triage | `/triage *` terminal transitions |
 | `triage:accepted` | `/triage accepted` by a `write` / `admin` collaborator | superseded by a later `/triage` terminal action |
 | `triage:declined` | `/triage declined` by a `write` / `admin` collaborator | superseded by a later `/triage` terminal action |
 | `triage:duplicated` | `/triage duplicated` by a `write` / `admin` collaborator | superseded by a later `/triage` terminal action |
@@ -99,14 +97,12 @@ The Feishu notification workflows do not use the GitHub App. They use the defaul
 ```
 .github/workflows/
   nexu-pal-issue-opened.yml
-  nexu-pal-issue-assigned.yml
   nexu-pal-triage-command.yml
   feishu-issue-notify.yml
   nexu-pal-needs-triage-notify.yml
   feishu-discussion-notify.yml
 scripts/nexu-pal/
-  process-issue-opened.mjs # opened-issue triage pipeline with bug-only labeling
-  process-issue-assignment.mjs  # remove needs-triage on assignment via shared client
+  process-issue-opened.mjs # opened-issue triage pipeline with bug-only labeling + needs-information pause
   process-triage-command.mjs    # parse /triage comments, check permission, and apply terminal transitions
   lib/github-client.mjs         # shared GitHub issue executor for comments/labels/close actions
   lib/permission-checker.mjs    # collaborator permission lookup for command gating

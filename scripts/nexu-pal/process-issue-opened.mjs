@@ -14,7 +14,6 @@ const repo = process.env.GITHUB_REPOSITORY;
 const issueNumber = process.env.ISSUE_NUMBER;
 const issueTitle = process.env.ISSUE_TITLE ?? "";
 const issueBody = process.env.ISSUE_BODY ?? "";
-const issueAssignee = process.env.ISSUE_ASSIGNEE ?? "";
 
 if (!endpoint || !apiKey || !ghToken || !repo || !issueNumber) {
   console.error(
@@ -56,7 +55,6 @@ async function main() {
   const plan = await buildOpenedIssueTriagePlan({
     issueTitle,
     issueBody,
-    issueAssignee,
     chat,
   });
 

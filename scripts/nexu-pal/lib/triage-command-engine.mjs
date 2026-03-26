@@ -45,6 +45,7 @@ export function buildTriageCommandPlan(action) {
   plan.commentsToAdd.push(buildCommentForAction(action));
   plan.labelsToRemove.push(
     "needs-triage",
+    "needs-information",
     "triage:accepted",
     "triage:declined",
     "triage:duplicated",

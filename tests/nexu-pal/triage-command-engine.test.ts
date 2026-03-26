@@ -28,6 +28,7 @@ describe("buildTriageCommandPlan", () => {
       labelsToAdd: ["triage:accepted"],
       labelsToRemove: [
         "needs-triage",
+        "needs-information",
         "triage:accepted",
         "triage:declined",
         "triage:duplicated",
@@ -45,6 +46,7 @@ describe("buildTriageCommandPlan", () => {
       labelsToAdd: ["triage:duplicated"],
       labelsToRemove: [
         "needs-triage",
+        "needs-information",
         "triage:accepted",
         "triage:declined",
         "triage:duplicated",
