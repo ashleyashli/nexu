@@ -30,6 +30,8 @@
 
 > 🦞 **最丝滑接入微信 OpenClaw**：扫码即连，开箱即用。
 >
+> 🖥 **已支持平台**：macOS（Apple Silicon）· macOS（Intel）· Windows — [下载地址](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe)
+>
 > 🎉 **内测福利**：内测期间，Gemini 等顶级模型 **免费使用**。[立即下载体验 →](https://nexu.io)
 
 ---
@@ -143,18 +145,19 @@ nexu 面向 **One Person Company** 与小团队，让一个人就能拥有一支
 
 ### 系统要求
 
-- 🍎 **系统**：macOS 12+（Apple Silicon）
+- 🍎 **macOS**：macOS 12+（Apple Silicon & Intel）
+- 🪟 **Windows**：Windows 10+
 - 💾 **磁盘**：约 500 MB
 
 ### 安装
 
-**推荐：直接下载 Mac 客户端**
+**推荐：直接下载客户端**
 
-1. 打开 [官网](https://nexu.io) 或 [Releases](https://github.com/nexu-io/nexu/releases) 📥
-2. 下载 Mac 安装包
-3. 启动 nexu 🎉
-
-> ⏳ **Windows 与 macOS Intel**：开发中。如需进展可邮件 [support@nexu.ai](mailto:support@nexu.ai)。
+| 平台 | 下载 |
+|------|------|
+| 🍎 macOS（Apple Silicon） | [官网](https://nexu.io) · [Releases](https://github.com/nexu-io/nexu/releases) |
+| 🍎 macOS（Intel） | [下载](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe) |
+| 🪟 Windows | [下载](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe) |
 
 ### 首次启动
 
@@ -221,7 +224,7 @@ pnpm test
 A: 客户端完全免费且开源（MIT）。内置多款顶级模型供你使用，也可以选择自带 API Key。
 
 **Q: 支持哪些操作系统？**
-A: 目前支持 macOS 12+（Apple Silicon）。Windows 和 macOS Intel 版本正在开发中，可邮件 [support@nexu.ai](mailto:support@nexu.ai) 获取进展。
+A: 支持 macOS 12+（Apple Silicon & Intel）和 Windows 10+。
 
 **Q: 支持哪些 IM 平台？**
 A: 内置支持微信、飞书、Slack、Discord，开箱即用。

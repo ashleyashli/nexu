@@ -30,6 +30,8 @@
 
 > 🦞 **The smoothest way to connect OpenClaw to WeChat**: Scan, connect, and go.
 >
+> 🖥 **Supported platforms**: macOS (Apple Silicon) · macOS (Intel) · Windows — [Downloads](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe)
+>
 > 🎉 **Beta Perk**: During the beta period, top-tier models like Gemini and more are **free to use**. [Download and try now →](https://nexu.io)
 
 ---
@@ -143,18 +145,19 @@ Requirement breakdown, asset search, copywriting, design annotation—free up cr
 
 ### System requirements
 
-- 🍎 **OS**: macOS 12+ (Apple Silicon)
+- 🍎 **macOS**: macOS 12+ (Apple Silicon & Intel)
+- 🪟 **Windows**: Windows 10+
 - 💾 **Storage**: ~500 MB
 
 ### Installation
 
-**Pre-built Mac client (recommended)**
+**Pre-built client (recommended)**
 
-1. Go to the [official site](https://nexu.io) or [Releases](https://github.com/nexu-io/nexu/releases) 📥
-2. Download the Mac installer
-3. Launch nexu 🎉
-
-> ⏳ **Windows & macOS Intel**: In development. Email [support@nexu.ai](mailto:support@nexu.ai) for updates.
+| Platform | Download |
+|----------|----------|
+| 🍎 macOS (Apple Silicon) | [Official site](https://nexu.io) · [Releases](https://github.com/nexu-io/nexu/releases) |
+| 🍎 macOS (Intel) | [Download](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe) |
+| 🪟 Windows | [Download](https://powerformer.feishu.cn/wiki/VgIvwDqxgiBSXhkGp7gc4z8rnPe) |
 
 ### First launch
 
@@ -221,7 +224,7 @@ Contributions are welcome! The full English guide is [CONTRIBUTING.md](CONTRIBUT
 A: The client is completely free and open-source (MIT). Multiple top-tier models are built in for you to use, and you can also bring your own API Key.
 
 **Q: Which operating systems are supported?**
-A: macOS 12+ (Apple Silicon) is supported today. Windows and macOS Intel are in development — email [support@nexu.ai](mailto:support@nexu.ai) for updates.
+A: macOS 12+ (Apple Silicon & Intel) and Windows 10+ are supported.
 
 **Q: Which IM platforms are supported?**
 A: WeChat, Feishu, Slack, and Discord are built in and work out of the box.
