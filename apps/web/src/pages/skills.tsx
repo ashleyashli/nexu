@@ -558,7 +558,7 @@ export function SkillsPage() {
         style={{ paddingTop: isDesktopClient ? "2rem" : "0.5rem" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="page-header flex items-center justify-between">
           <div>
             <h1 className="heading-page">{t("skills.pageTitle")}</h1>
             <p className="heading-page-desc">{t("skills.pageSubtitle")}</p>

@@ -868,9 +868,9 @@ export function ModelsPage() {
         className="max-w-4xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8"
         style={{ paddingTop: isDesktopClient ? "2rem" : "0.5rem" }}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="page-header flex items-center justify-between">
           <div>
-            <h2 className="heading-page">{t("models.pageTitle")}</h2>
+            <h1 className="heading-page">{t("models.pageTitle")}</h1>
             <p className="heading-page-desc">{t("models.pageSubtitle")}</p>
           </div>
           <div className="flex items-center gap-2">

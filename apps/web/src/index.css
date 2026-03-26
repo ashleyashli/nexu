@@ -183,8 +183,12 @@ select:focus-visible {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   Typography — heading levels
+   Page header — consistent title + subtitle + spacing for all pages
    ═══════════════════════════════════════════════════════════════════ */
+
+.page-header {
+  margin-bottom: 32px;
+}
 
 .heading-page {
   font-size: 24px;

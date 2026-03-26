@@ -103,13 +103,9 @@ export function ChannelsPage() {
   return (
     <div className="px-4 py-4 sm:px-6 sm:py-6 md:p-8 mx-auto max-w-4xl">
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-lg font-bold text-text-primary">
-          {t("channels.pageTitle")}
-        </h1>
-        <p className="text-[13px] text-text-muted mt-1">
-          {t("channels.pageSubtitle")}
-        </p>
+      <div className="page-header">
+        <h1 className="heading-page">{t("channels.pageTitle")}</h1>
+        <p className="heading-page-desc">{t("channels.pageSubtitle")}</p>
       </div>
 
       {/* Platform selector */}
