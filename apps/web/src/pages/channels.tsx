@@ -6,6 +6,7 @@ import { WechatSetupView } from "@/components/channel-setup/wechat-setup-view";
 import { WhatsappSetupView } from "@/components/channel-setup/whatsapp-setup-view";
 import { useBotQuota } from "@/hooks/use-bot-quota";
 import { useCountdown } from "@/hooks/use-countdown";
+import { getChannelChatUrl } from "@/lib/channel-links";
 import { track } from "@/lib/tracking";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -332,8 +333,13 @@ function ConfiguredView({
     ? `https://discord.com/oauth2/authorize?client_id=${channel.appId}&scope=bot&permissions=8`
     : null;
   const telegramBotUrl =
-    platform === "telegram" && channel.botUserId
-      ? `https://t.me/${channel.botUserId.replace(/^@/, "")}`
+    platform === "telegram"
+      ? getChannelChatUrl(
+          "telegram",
+          channel.appId,
+          channel.botUserId,
+          channel.accountId,
+        )
       : null;
 
   return (
@@ -456,12 +462,11 @@ function ConfiguredView({
                 <ExternalLink size={13} className="text-sky-500" />
               </div>
               <h3 className="text-[13px] font-semibold text-text-primary">
-                Open in Telegram
+                {t("channels.openInTelegram")}
               </h3>
             </div>
             <p className="text-[12px] text-text-muted mb-3 leading-relaxed">
-              Open your bot profile, start a direct chat, or add it to a group.
-              Group replies work when the bot is mentioned.
+              {t("channels.openTelegramDesc")}
             </p>
             <a
               href={telegramBotUrl}
@@ -469,7 +474,7 @@ function ConfiguredView({
               rel="noopener noreferrer"
               className="inline-flex gap-1.5 items-center px-4 py-2 text-[12px] font-medium text-white rounded-lg bg-sky-500 hover:bg-sky-600 transition-all"
             >
-              <ExternalLink size={13} /> Open Bot
+              <ExternalLink size={13} /> {t("channels.openTelegramBot")}
             </a>
           </div>
         )}

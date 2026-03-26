@@ -38,6 +38,8 @@ const DEFAULT_WECHAT_BASE_URL = "https://ilinkai.weixin.qq.com";
 const DEFAULT_WECHAT_BOT_TYPE = "3";
 const WECHAT_LOGIN_TTL_MS = 5 * 60_000;
 const WECHAT_QR_POLL_TIMEOUT_MS = 35_000;
+const WECHAT_QR_FETCH_TIMEOUT_MS = 10_000;
+const WECHAT_QR_POLL_BACKOFF_MS = 1_000;
 const WHATSAPP_LOGIN_TTL_MS = 3 * 60_000;
 const WHATSAPP_QR_TIMEOUT_MS = 45_000;
 const WHATSAPP_WAIT_TIMEOUT_MS = 120_000;
@@ -475,13 +477,25 @@ async function fetchWechatQrCode(
     `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(botType)}`,
     base,
   );
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch QR code: ${response.status} ${response.statusText}`,
-    );
+  try {
+    const response = await fetch(url.toString(), {
+      signal: timeoutSignal(WECHAT_QR_FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch QR code: ${response.status} ${response.statusText}`,
+      );
+    }
+    return (await response.json()) as WechatQrCodeResponse;
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error("Timed out fetching WeChat QR code");
+    }
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Timed out fetching WeChat QR code");
+    }
+    throw error;
   }
-  return (await response.json()) as WechatQrCodeResponse;
 }
 
 async function pollWechatQrStatus(
@@ -686,6 +700,7 @@ export class ChannelService {
       );
 
       if (status.status === "wait" || status.status === "scaned") {
+        await sleep(WECHAT_QR_POLL_BACKOFF_MS);
         continue;
       }
 

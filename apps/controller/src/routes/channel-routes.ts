@@ -218,6 +218,7 @@ export function registerChannelRoutes(
       tags: ["Channels"],
       request: {
         body: {
+          required: true,
           content: { "application/json": { schema: connectTelegramSchema } },
         },
       },
@@ -363,6 +364,7 @@ export function registerChannelRoutes(
       tags: ["Channels"],
       request: {
         body: {
+          required: true,
           content: {
             "application/json": {
               schema: whatsappQrWaitRequestSchema,
@@ -411,6 +413,7 @@ export function registerChannelRoutes(
       tags: ["Channels"],
       request: {
         body: {
+          required: true,
           content: { "application/json": { schema: connectWhatsappSchema } },
         },
       },
@@ -489,6 +492,7 @@ export function registerChannelRoutes(
       tags: ["Channels"],
       request: {
         body: {
+          required: true,
           content: {
             "application/json": {
               schema: z.object({ sessionKey: z.string().min(1) }),
@@ -533,6 +537,7 @@ export function registerChannelRoutes(
       tags: ["Channels"],
       request: {
         body: {
+          required: true,
           content: { "application/json": { schema: connectWechatSchema } },
         },
       },

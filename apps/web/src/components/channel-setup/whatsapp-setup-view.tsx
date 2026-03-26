@@ -43,10 +43,16 @@ export function WhatsappSetupView({
 
   const finalizeConnect = useCallback(
     async (accountId: string) => {
+      if (!mountedRef.current) {
+        return;
+      }
       setPhase("connecting");
       const { error } = await postApiV1ChannelsWhatsappConnect({
         body: { accountId },
       });
+      if (!mountedRef.current) {
+        return;
+      }
       if (error) {
         const message =
           typeof error === "object" && error !== null && "message" in error
@@ -73,11 +79,17 @@ export function WhatsappSetupView({
   );
 
   const startQrFlow = useCallback(async () => {
+    if (!mountedRef.current) {
+      return;
+    }
     setPhase("loading-qr");
     setQrUrl(null);
     setErrorMessage(null);
 
     const { data, error } = await postApiV1ChannelsWhatsappQrStart();
+    if (!mountedRef.current) {
+      return;
+    }
     if (error || !data) {
       const message =
         typeof error === "object" && error !== null && "message" in error
@@ -102,30 +114,35 @@ export function WhatsappSetupView({
     setQrUrl(data.qrDataUrl);
     setPhase("scanning");
 
-    const { data: waitData, error: waitError } =
-      await postApiV1ChannelsWhatsappQrWait({
-        body: { accountId: data.accountId },
-      });
+    while (mountedRef.current) {
+      const { data: waitData, error: waitError } =
+        await postApiV1ChannelsWhatsappQrWait({
+          body: { accountId: data.accountId },
+        });
 
-    if (waitError || !waitData) {
-      const message =
-        typeof waitError === "object" &&
-        waitError !== null &&
-        "message" in waitError
-          ? String(waitError.message)
-          : "WhatsApp login timed out";
-      setErrorMessage(message);
-      setPhase("error");
-      return;
+      if (!mountedRef.current) {
+        return;
+      }
+
+      if (waitError || !waitData) {
+        const message =
+          typeof waitError === "object" &&
+          waitError !== null &&
+          "message" in waitError
+            ? String(waitError.message)
+            : "WhatsApp login timed out";
+        setErrorMessage(message);
+        setPhase("error");
+        return;
+      }
+
+      if (waitData.connected) {
+        await finalizeConnect(data.accountId);
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
-
-    if (!waitData.connected) {
-      setErrorMessage(waitData.message || "WhatsApp login failed");
-      setPhase("error");
-      return;
-    }
-
-    await finalizeConnect(data.accountId);
   }, [finalizeConnect]);
 
   const isLoading =

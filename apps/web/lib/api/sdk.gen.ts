@@ -353,8 +353,8 @@ export const postApiV1ChannelsFeishuConnect = <ThrowOnError extends boolean = fa
     });
 };
 
-export const postApiV1ChannelsTelegramConnect = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1ChannelsTelegramConnectData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<PostApiV1ChannelsTelegramConnectResponse, PostApiV1ChannelsTelegramConnectError, ThrowOnError>({
+export const postApiV1ChannelsTelegramConnect = <ThrowOnError extends boolean = false>(options: Options<PostApiV1ChannelsTelegramConnectData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<PostApiV1ChannelsTelegramConnectResponse, PostApiV1ChannelsTelegramConnectError, ThrowOnError>({
         url: '/api/v1/channels/telegram/connect',
         ...options,
         headers: {
@@ -392,8 +392,8 @@ export const postApiV1ChannelsWhatsappQrStart = <ThrowOnError extends boolean = 
     });
 };
 
-export const postApiV1ChannelsWhatsappQrWait = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1ChannelsWhatsappQrWaitData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<PostApiV1ChannelsWhatsappQrWaitResponse, PostApiV1ChannelsWhatsappQrWaitError, ThrowOnError>({
+export const postApiV1ChannelsWhatsappQrWait = <ThrowOnError extends boolean = false>(options: Options<PostApiV1ChannelsWhatsappQrWaitData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<PostApiV1ChannelsWhatsappQrWaitResponse, PostApiV1ChannelsWhatsappQrWaitError, ThrowOnError>({
         url: '/api/v1/channels/whatsapp/qr-wait',
         ...options,
         headers: {
@@ -403,8 +403,8 @@ export const postApiV1ChannelsWhatsappQrWait = <ThrowOnError extends boolean = f
     });
 };
 
-export const postApiV1ChannelsWhatsappConnect = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1ChannelsWhatsappConnectData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<PostApiV1ChannelsWhatsappConnectResponse, PostApiV1ChannelsWhatsappConnectError, ThrowOnError>({
+export const postApiV1ChannelsWhatsappConnect = <ThrowOnError extends boolean = false>(options: Options<PostApiV1ChannelsWhatsappConnectData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<PostApiV1ChannelsWhatsappConnectResponse, PostApiV1ChannelsWhatsappConnectError, ThrowOnError>({
         url: '/api/v1/channels/whatsapp/connect',
         ...options,
         headers: {
@@ -421,8 +421,8 @@ export const postApiV1ChannelsWechatQrStart = <ThrowOnError extends boolean = fa
     });
 };
 
-export const postApiV1ChannelsWechatQrWait = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1ChannelsWechatQrWaitData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<PostApiV1ChannelsWechatQrWaitResponse, PostApiV1ChannelsWechatQrWaitError, ThrowOnError>({
+export const postApiV1ChannelsWechatQrWait = <ThrowOnError extends boolean = false>(options: Options<PostApiV1ChannelsWechatQrWaitData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<PostApiV1ChannelsWechatQrWaitResponse, PostApiV1ChannelsWechatQrWaitError, ThrowOnError>({
         url: '/api/v1/channels/wechat/qr-wait',
         ...options,
         headers: {
@@ -432,8 +432,8 @@ export const postApiV1ChannelsWechatQrWait = <ThrowOnError extends boolean = fal
     });
 };
 
-export const postApiV1ChannelsWechatConnect = <ThrowOnError extends boolean = false>(options?: Options<PostApiV1ChannelsWechatConnectData, ThrowOnError>) => {
-    return (options?.client ?? _heyApiClient).post<PostApiV1ChannelsWechatConnectResponse, PostApiV1ChannelsWechatConnectError, ThrowOnError>({
+export const postApiV1ChannelsWechatConnect = <ThrowOnError extends boolean = false>(options: Options<PostApiV1ChannelsWechatConnectData, ThrowOnError>) => {
+    return (options.client ?? _heyApiClient).post<PostApiV1ChannelsWechatConnectResponse, PostApiV1ChannelsWechatConnectError, ThrowOnError>({
         url: '/api/v1/channels/wechat/connect',
         ...options,
         headers: {

@@ -1202,7 +1202,7 @@ export type PostApiV1ChannelsFeishuConnectResponses = {
 export type PostApiV1ChannelsFeishuConnectResponse = PostApiV1ChannelsFeishuConnectResponses[keyof PostApiV1ChannelsFeishuConnectResponses];
 
 export type PostApiV1ChannelsTelegramConnectData = {
-    body?: {
+    body: {
         botToken: string;
     };
     path?: never;
@@ -1353,7 +1353,7 @@ export type PostApiV1ChannelsWhatsappQrStartResponses = {
 export type PostApiV1ChannelsWhatsappQrStartResponse = PostApiV1ChannelsWhatsappQrStartResponses[keyof PostApiV1ChannelsWhatsappQrStartResponses];
 
 export type PostApiV1ChannelsWhatsappQrWaitData = {
-    body?: {
+    body: {
         accountId: string;
     };
     path?: never;
@@ -1386,7 +1386,7 @@ export type PostApiV1ChannelsWhatsappQrWaitResponses = {
 export type PostApiV1ChannelsWhatsappQrWaitResponse = PostApiV1ChannelsWhatsappQrWaitResponses[keyof PostApiV1ChannelsWhatsappQrWaitResponses];
 
 export type PostApiV1ChannelsWhatsappConnectData = {
-    body?: {
+    body: {
         accountId: string;
     };
     path?: never;
@@ -1457,7 +1457,7 @@ export type PostApiV1ChannelsWechatQrStartResponses = {
 export type PostApiV1ChannelsWechatQrStartResponse = PostApiV1ChannelsWechatQrStartResponses[keyof PostApiV1ChannelsWechatQrStartResponses];
 
 export type PostApiV1ChannelsWechatQrWaitData = {
-    body?: {
+    body: {
         sessionKey: string;
     };
     path?: never;
@@ -1490,7 +1490,7 @@ export type PostApiV1ChannelsWechatQrWaitResponses = {
 export type PostApiV1ChannelsWechatQrWaitResponse = PostApiV1ChannelsWechatQrWaitResponses[keyof PostApiV1ChannelsWechatQrWaitResponses];
 
 export type PostApiV1ChannelsWechatConnectData = {
-    body?: {
+    body: {
         accountId: string;
     };
     path?: never;

@@ -252,9 +252,6 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       if (gate("reactions")) {
         actions.add("react");
       }
-      if (gate("polls")) {
-        actions.add("poll");
-      }
       return Array.from(actions);
     },
     supportsAction: ({ action }) => action === "react",
@@ -405,12 +402,14 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
       };
     },
     buildAccountSnapshot: async ({ account, runtime }) => {
-      const linked = await getWhatsAppRuntime().channel.whatsapp.webAuthExists(account.authDir);
+      const linked = account.authDir
+        ? await getWhatsAppRuntime().channel.whatsapp.webAuthExists(account.authDir)
+        : false;
       return {
         accountId: account.accountId,
         name: account.name,
         enabled: account.enabled,
-        configured: true,
+        configured: linked,
         linked,
         running: runtime?.running ?? false,
         connected: runtime?.connected ?? false,
@@ -436,13 +435,10 @@ export const whatsappPlugin: ChannelPlugin<ResolvedWhatsAppAccount> = {
   gateway: {
     startAccount: async (ctx) => {
       const account = ctx.account;
-      const { e164, jid } = getWhatsAppRuntime().channel.whatsapp.readWebSelfId(account.authDir);
       ctx.log?.info(
         {
           channel: "whatsapp",
           accountId: account.accountId,
-          e164: e164 ?? null,
-          jid: jid ?? null,
         },
         "starting provider",
       );

@@ -3357,6 +3357,7 @@
           "Channels"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3701,6 +3702,7 @@
           "Channels"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3772,6 +3774,7 @@
           "Channels"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3937,6 +3940,7 @@
           "Channels"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -4007,6 +4011,7 @@
           "Channels"
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
