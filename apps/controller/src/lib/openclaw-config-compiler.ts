@@ -456,6 +456,12 @@ export function compileOpenClawConfig(
         mode: "idle",
         idleMinutes: 525_600, // 1 year
       },
+      // Relax multi-tenant session pruning defaults for desktop.
+      // OpenClaw defaults: pruneAfter 30d, maxEntries 500.
+      maintenance: {
+        pruneAfter: "365d",
+        maxEntries: 5000,
+      },
     },
     cron: {
       enabled: true,
