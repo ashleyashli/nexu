@@ -21,8 +21,8 @@ const runtimeConfig = getDesktopRuntimeConfig(process.env, {
 function reportStartupProbe(payload: StartupProbePayload): void {
   try {
     ipcRenderer.send("host:startup-probe", payload);
-  } catch {
-    // Best-effort only.
+  } catch (error) {
+    console.error("[desktop] failed to report startup probe", error);
   }
 }
 

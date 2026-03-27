@@ -62,8 +62,8 @@ function sendRendererStartupProbe(
       status,
       detail: detail ?? null,
     });
-  } catch {
-    // Best-effort only.
+  } catch (error) {
+    console.error("[desktop] failed to report startup probe", error);
   }
 }
 
